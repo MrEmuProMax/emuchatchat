@@ -3,205 +3,241 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>線上聊天大廳</title>
+    <title>科技聊天大廳</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- MQTT.js 通訊庫 -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- 科技字型 -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 
     <style>
+      :root {
+        --cyan-glow: #00f2fe;
+        --cyan-dark: #071322;
+        --dark-bg: #060913;
+      }
       body {
         margin: 0;
         padding: 0;
         width: 100vw;
         height: 100vh;
         overflow: hidden;
-        background-color: #0b1120;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+        background-color: var(--dark-bg);
+        font-family: "Chakra Petch", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         user-select: none;
       }
-      .glass-panel {
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      .font-mono-tech {
+        font-family: "JetBrains Mono", monospace;
       }
-      .custom-btn {
-        background: #0284c7;
-        color: #ffffff;
-        font-weight: 500;
-        transition: all 0.15s ease;
+      /* 科技感背景網格 */
+      .tech-grid-bg {
+        background-image: 
+          radial-gradient(circle at 50% 50%, rgba(0, 242, 254, 0.08) 0%, transparent 80%),
+          linear-gradient(to right, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+        background-size: 100% 100%, 32px 32px, 32px 32px;
       }
-      .custom-btn:hover {
-        background: #0369a1;
-        box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
+      .glow-box {
+        background: rgba(10, 16, 30, 0.92);
+        border: 1px solid rgba(0, 242, 254, 0.35);
+        box-shadow: 0 0 25px rgba(0, 242, 254, 0.12), inset 0 0 15px rgba(0, 242, 254, 0.04);
       }
-      .input-box {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(51, 65, 85, 0.8);
-        color: #f8fafc;
+      .cyber-btn {
+        background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(56, 189, 248, 0.1) 100%);
+        border: 1px solid rgba(0, 242, 254, 0.5);
+        color: #00f2fe;
         transition: all 0.2s ease;
       }
-      .input-box:focus {
-        border-color: #38bdf8;
+      .cyber-btn:hover {
+        background: linear-gradient(135deg, rgba(0, 242, 254, 0.3) 0%, rgba(56, 189, 248, 0.25) 100%);
+        border-color: #00f2fe;
+        box-shadow: 0 0 14px rgba(0, 242, 254, 0.4);
+      }
+      .cyber-btn-primary {
+        background: linear-gradient(135deg, #00f2fe 0%, #38bdf8 100%);
+        color: #040914;
+        font-weight: 700;
+        border: none;
+        box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);
+      }
+      .cyber-btn-primary:hover {
+        background: linear-gradient(135deg, #38f9d7 0%, #00f2fe 100%);
+        box-shadow: 0 0 22px rgba(56, 249, 215, 0.65);
+      }
+      .cyber-input {
+        background: rgba(7, 12, 24, 0.9);
+        border: 1px solid rgba(0, 242, 254, 0.3);
+        color: #ffffff;
+        transition: all 0.2s ease;
+      }
+      .cyber-input:focus {
+        border-color: #00f2fe;
         outline: none;
-        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+        box-shadow: 0 0 10px rgba(0, 242, 254, 0.35);
       }
       ::-webkit-scrollbar {
         width: 5px;
         height: 5px;
       }
       ::-webkit-scrollbar-thumb {
-        background: #334155;
-        border-radius: 3px;
+        background: rgba(0, 242, 254, 0.35);
+        border-radius: 2px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #475569;
+        background: rgba(0, 242, 254, 0.6);
       }
       ::-webkit-scrollbar-track {
-        background: transparent;
+        background: rgba(6, 10, 18, 0.6);
       }
     </style>
   </head>
-  <body class="text-slate-100 flex items-center justify-center min-h-screen p-2 sm:p-4">
+  <body class="tech-grid-bg text-slate-100 flex items-center justify-center min-h-screen p-2 sm:p-4">
 
-    <!-- 1. 登入面板 -->
-    <div id="login-panel" class="relative z-10 w-full max-w-sm glass-panel rounded-2xl p-7 flex flex-col gap-5 backdrop-blur-md">
+    <!-- 1. 科技登入終端 -->
+    <div id="login-panel" class="relative z-10 w-full max-w-sm glow-box rounded-2xl p-7 flex flex-col gap-5 backdrop-blur-xl">
       <div class="text-center">
-        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
-          聊天室大廳
+        <div class="inline-block px-3 py-0.5 rounded-full text-[11px] font-mono-tech text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 mb-2">
+          MQTT QoS 1 高可靠連線
+        </div>
+        <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
+          科技聊天大廳
         </h1>
-        <p class="text-xs text-slate-400 mt-1.5">MQTT QoS 1 高可靠連線傳輸</p>
+        <p class="text-xs text-slate-400 font-mono-tech mt-1">即時檔案與文字通訊平台</p>
       </div>
 
-      <!-- 自訂頭像選取區 -->
-      <div class="flex items-center gap-3.5 bg-slate-900/80 border border-slate-700/80 p-3 rounded-xl">
-        <div class="relative group cursor-pointer w-14 h-14 rounded-xl bg-slate-800 border border-slate-600 overflow-hidden flex-shrink-0 flex items-center justify-center" onclick="document.getElementById('avatar-file').click()">
+      <!-- 科技頭像選取區 -->
+      <div class="flex items-center gap-3.5 bg-slate-950/80 border border-cyan-500/30 p-3 rounded-xl">
+        <div class="relative group cursor-pointer w-14 h-14 rounded-xl bg-slate-900 border border-cyan-400/50 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-[0_0_10px_rgba(0,242,254,0.2)]" onclick="document.getElementById('avatar-file').click()">
           <img id="avatar-preview" src="" class="w-full h-full object-cover hidden" />
-          <span id="avatar-placeholder" class="text-xs text-slate-400">頭像</span>
-          <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <span class="text-[11px] text-sky-300 font-medium">更換</span>
+          <span id="avatar-placeholder" class="text-xs text-cyan-400 font-mono-tech">頭像</span>
+          <div class="absolute inset-0 bg-cyan-950/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <span class="text-[11px] text-cyan-300 font-medium font-mono-tech">更換</span>
           </div>
         </div>
         <input id="avatar-file" type="file" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)" />
         <div class="flex flex-col gap-1.5 flex-1">
           <div class="flex gap-2">
-            <button type="button" onclick="document.getElementById('avatar-file').click()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg transition-colors">
-              上傳照片
+            <button type="button" onclick="document.getElementById('avatar-file').click()" class="cyber-btn px-2.5 py-1 text-xs rounded-lg font-mono-tech">
+              自訂照片
             </button>
-            <button type="button" onclick="resetDefaultAvatar()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg transition-colors">
-              隨機頭像
+            <button type="button" onclick="resetDefaultAvatar()" class="cyber-btn px-2.5 py-1 text-xs rounded-lg font-mono-tech">
+              隨機雷達
             </button>
           </div>
-          <span class="text-[11px] text-slate-400">點擊頭像即可自訂圖片</span>
+          <span class="text-[11px] text-slate-400 font-mono-tech">點擊左側頭像亦可直接上傳</span>
         </div>
       </div>
 
       <!-- 表單 -->
       <div class="flex flex-col gap-4">
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1.5">你的暱稱</label>
-          <input id="input-username" type="text" maxlength="12" value="Player" placeholder="輸入你想使用的暱稱..."
-            class="input-box w-full px-3.5 py-2.5 text-sm rounded-xl" />
+          <label class="block text-xs font-mono-tech text-cyan-400 mb-1.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> 你的暱稱
+          </label>
+          <input id="input-username" type="text" maxlength="12" value="Player" placeholder="輸入暱稱..."
+            class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-xl font-mono-tech" />
         </div>
 
-        <button onclick="joinLobby()" class="custom-btn py-3 rounded-xl text-sm font-semibold tracking-wide mt-1">
+        <button onclick="joinLobby()" class="cyber-btn-primary py-3 rounded-xl text-sm font-semibold tracking-wider transition-all duration-200 mt-1">
           進入公共大廳
         </button>
 
-        <div id="conn-hint" class="text-xs text-center text-slate-400">
+        <div id="conn-hint" class="text-xs font-mono-tech text-center text-slate-400">
           準備就緒
         </div>
       </div>
     </div>
 
-    <!-- 2. 主聊天大廳介面 -->
-    <div id="lobby-panel" class="relative z-20 hidden w-[98vw] h-[95vh] max-w-7xl glass-panel rounded-2xl shadow-2xl backdrop-blur-md flex overflow-hidden">
+    <!-- 2. 全屏聊天室主面板 -->
+    <div id="lobby-panel" class="relative z-20 hidden w-[98vw] h-[95vh] max-w-7xl glow-box rounded-2xl shadow-2xl backdrop-blur-2xl flex overflow-hidden">
       
-      <!-- [左側] 大廳切換欄 (僅保留公共大廳與自訂大廳) -->
-      <div class="w-56 bg-slate-900/80 border-r border-slate-800 flex flex-col justify-between flex-shrink-0">
+      <!-- [左側] 大廳切換欄 (公共大廳 + 自訂大廳) -->
+      <div class="w-60 bg-[#050811]/95 border-r border-cyan-500/20 flex flex-col justify-between flex-shrink-0">
         <div>
-          <div class="p-3 border-b border-slate-800 flex items-center justify-between">
-            <span class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-sky-400"></span> 頻道列表
+          <div class="p-3.5 border-b border-cyan-500/20 flex items-center justify-between">
+            <span class="text-xs font-bold text-cyan-300 font-mono-tech flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f2fe]"></span> 頻道列表
             </span>
-            <button onclick="promptCreateRoom()" title="建立或加入自訂大廳" class="px-2 py-0.5 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded font-bold transition-colors">
-              ＋
+            <button onclick="openCreateRoomModal()" title="自訂並加入大廳" class="cyber-btn px-2.5 py-1 text-xs rounded-lg font-mono-tech font-bold flex items-center gap-1">
+              <span>＋ 自訂</span>
             </button>
           </div>
 
-          <div class="p-2 flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-180px)]" id="room-list">
+          <div class="p-2.5 flex flex-col gap-1.5 overflow-y-auto max-h-[calc(100vh-190px)]" id="room-list">
             <!-- 由 JS 動態生成大廳項目 -->
           </div>
         </div>
 
-        <!-- 底部個人資訊 -->
-        <div class="p-3 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between">
+        <!-- 底部個人卡片 -->
+        <div class="p-3 border-t border-cyan-500/20 bg-slate-950/70 flex items-center justify-between">
           <div class="flex items-center gap-2 overflow-hidden">
-            <img id="my-profile-avatar" src="" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0" />
+            <img id="my-profile-avatar" src="" class="w-8 h-8 rounded-lg object-cover border border-cyan-400/50 flex-shrink-0" />
             <div class="flex flex-col overflow-hidden">
-              <span id="my-profile-name" class="text-xs font-semibold text-white truncate">Player</span>
-              <span class="text-[10px] text-emerald-400">QoS 1 連線中</span>
+              <span id="my-profile-name" class="text-xs font-bold text-cyan-200 font-mono-tech truncate">Player</span>
+              <span class="text-[10px] text-emerald-400 font-mono-tech flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> QoS 1 在線
+              </span>
             </div>
           </div>
-          <button onclick="leaveLobby()" title="離開大廳" class="text-xs text-red-400 hover:text-red-300 p-1.5 rounded hover:bg-slate-800">
+          <button onclick="leaveLobby()" title="離開大廳" class="cyber-btn px-2.5 py-1 text-xs rounded-lg text-red-400 border-red-500/40 hover:border-red-400 hover:text-red-300 font-mono-tech">
             離開
           </button>
         </div>
       </div>
 
-      <!-- [中央與右側] 主聊天室與成員 -->
+      <!-- [中央與右側] 主聊天室與在線名單 -->
       <div class="flex-1 flex flex-col justify-between overflow-hidden">
         
         <!-- 頂部資訊列 -->
-        <div class="px-4 py-2.5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center flex-shrink-0">
+        <div class="px-4 py-2.5 border-b border-cyan-500/20 bg-slate-900/40 flex justify-between items-center flex-shrink-0">
           <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 px-3 py-1 rounded-lg">
+            <div class="flex items-center gap-2 bg-[#050811] border border-cyan-500/40 px-3 py-1 rounded-lg">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span id="lobby-title" class="text-xs font-semibold text-white">大廳: 公共大廳</span>
+              <span id="lobby-title" class="text-xs font-bold text-cyan-300 font-mono-tech tracking-wider">大廳: 公共大廳</span>
             </div>
-            <span class="text-xs text-slate-300">
+            <span class="text-xs font-mono-tech text-slate-300">
               線上成員：<span id="online-count" class="text-emerald-400 font-bold">1</span> 人
             </span>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="text-xs text-slate-400">延遲：<span id="ping-stat" class="text-emerald-400 font-medium">0ms</span></span>
+            <span class="text-xs font-mono-tech text-slate-400">延遲：<span id="ping-stat" class="text-emerald-400 font-bold">0ms</span></span>
           </div>
         </div>
 
-        <!-- 中央區塊：聊天訊息 + 在線成員名單 -->
+        <!-- 中央聊天訊息 + 在線人員名單 -->
         <div class="flex-1 flex overflow-hidden p-3 gap-3">
           <!-- 聊天捲軸區 -->
-          <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between overflow-hidden">
+          <div class="flex-1 bg-[#050811]/80 border border-cyan-500/20 rounded-xl p-3.5 flex flex-col justify-between overflow-hidden">
             <div id="chat-scroller" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 text-sm"></div>
           </div>
 
           <!-- 右側在線人員 -->
-          <div class="w-56 bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col flex-shrink-0">
-            <div class="text-xs font-semibold text-slate-300 mb-2 pb-2 border-b border-slate-700/60 flex justify-between items-center">
-              <span>大廳成員</span>
-              <span class="text-emerald-400 text-[11px] font-normal">即時同步</span>
+          <div class="w-56 bg-[#050811]/80 border border-cyan-500/20 rounded-xl p-3 flex flex-col flex-shrink-0">
+            <div class="text-xs font-mono-tech text-cyan-400 mb-2 pb-2 border-b border-cyan-500/20 flex justify-between items-center tracking-wider font-bold">
+              <span>線上成員</span>
+              <span class="text-emerald-400 text-[10px] font-normal">即時同步</span>
             </div>
             <div id="player-list" class="flex-1 overflow-y-auto flex flex-col gap-1.5"></div>
           </div>
         </div>
 
-        <!-- 底部通訊工具列 -->
-        <div class="p-3 border-t border-slate-800 bg-slate-950/40 flex flex-col gap-2 flex-shrink-0">
+        <!-- 底部傳送工具列 -->
+        <div class="p-3 border-t border-cyan-500/20 bg-slate-950/60 flex flex-col gap-2 flex-shrink-0">
           <div class="flex items-center gap-2">
             <input id="file-upload-input" type="file" multiple class="hidden" onchange="handleFilesSelected(event)" />
 
-            <button onclick="document.getElementById('file-upload-input').click()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
-              <span>📎 傳送檔案</span>
+            <button onclick="document.getElementById('file-upload-input').click()" class="cyber-btn px-3 py-1.5 rounded-lg text-xs font-mono-tech flex items-center gap-1.5">
+              <span>⚡ 傳送檔案</span>
             </button>
 
             <!-- 傳輸進度狀態列 -->
-            <div id="transfer-progress-bar" class="hidden items-center gap-2 bg-slate-900 border border-sky-500/40 px-3 py-1 rounded-lg text-xs text-sky-300">
-              <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+            <div id="transfer-progress-bar" class="hidden items-center gap-2 bg-[#050811] border border-cyan-500/40 px-3 py-1 rounded-lg text-xs font-mono-tech text-cyan-300">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
               <span id="transfer-progress-text">準備傳輸中...</span>
-              <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-medium">取消</button>
+              <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-bold">取消傳輸</button>
             </div>
           </div>
 
@@ -212,9 +248,9 @@
               maxlength="300"
               placeholder="輸入訊息... (按 Enter 發送)"
               onkeydown="if(event.key === 'Enter') sendTextMessage();"
-              class="input-box flex-1 px-4 py-2.5 rounded-xl text-sm"
+              class="cyber-input flex-1 px-4 py-2.5 rounded-xl text-sm font-mono-tech"
             />
-            <button onclick="sendTextMessage()" class="custom-btn px-6 py-2.5 rounded-xl text-sm font-semibold">
+            <button onclick="sendTextMessage()" class="cyber-btn-primary px-6 py-2.5 rounded-xl text-xs font-mono-tech font-bold tracking-wider">
               發送
             </button>
           </div>
@@ -222,9 +258,35 @@
       </div>
     </div>
 
-    <!-- 圖片放大預覽視窗 -->
-    <div id="image-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center hidden p-4" onclick="this.classList.add('hidden')">
-      <img id="image-modal-preview" src="" class="max-w-full max-h-[90vh] object-contain rounded-xl border border-slate-700 shadow-2xl" />
+    <!-- 自訂大廳彈窗 Modal (解決 prompt 被阻擋問題) -->
+    <div id="custom-room-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden p-4">
+      <div class="glow-box w-full max-w-sm rounded-2xl p-6 flex flex-col gap-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-cyan-500/20 pb-2">
+          <span class="text-sm font-bold text-cyan-300 font-mono-tech flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span> 創建 / 加入自訂大廳
+          </span>
+          <button onclick="closeCreateRoomModal()" class="text-slate-400 hover:text-white font-mono-tech text-sm">✕</button>
+        </div>
+        <div>
+          <label class="block text-xs font-mono-tech text-slate-300 mb-1.5">大廳名稱</label>
+          <input id="custom-room-input" type="text" maxlength="15" placeholder="輸入自訂大廳名稱..."
+            onkeydown="if(event.key === 'Enter') confirmCreateRoom();"
+            class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-xl font-mono-tech" />
+        </div>
+        <div class="flex justify-end gap-2 mt-2">
+          <button onclick="closeCreateRoomModal()" class="cyber-btn px-4 py-2 rounded-lg text-xs font-mono-tech">
+            取消
+          </button>
+          <button onclick="confirmCreateRoom()" class="cyber-btn-primary px-4 py-2 rounded-lg text-xs font-mono-tech font-bold">
+            確定進入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 圖片點擊放大預覽視窗 -->
+    <div id="image-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center hidden p-4" onclick="this.classList.add('hidden')">
+      <img id="image-modal-preview" src="" class="max-w-full max-h-[90vh] object-contain rounded-xl border border-cyan-400/50 shadow-[0_0_30px_rgba(0,242,254,0.3)]" />
     </div>
 
     <script>
@@ -232,14 +294,14 @@
          1. 核心網路通訊與大廳狀態管理 (一律 QOS 1)
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const LOBBY_PREFIX = "chat_reliable_v2/";
+      const LOBBY_PREFIX = "chat_reliable_v3/";
       
       let myId = "";
       let client = null;
       let myName = "Player";
       let myAvatar = "";
 
-      // 只有公共大廳與自訂大廳
+      // 頻道列表（只有公共大廳與自訂大廳）
       const availableRooms = ["公共大廳"];
       let currentRoom = "公共大廳";
       let currentTopic = "";
@@ -248,14 +310,14 @@
       let pingLoop = null;
       let checkLoop = null;
 
-      // 檔案傳輸任務池
+      // 傳輸佇列與任務狀態
       const uploadQueue = [];
       let totalBatchFiles = 0;
       let completedBatchFiles = 0;
       const activeUploads = new Map();
       const incomingFiles = new Map();
 
-      // 切片大小：64KB，在 QoS 1 下具備極佳穩定度與確認速度
+      // 切片大小：64KB，在 QoS 1 下具備極佳的傳輸穩定度與確認速度
       const CHUNK_SIZE = 64 * 1024;
 
       function formatBytes(bytes) {
@@ -266,12 +328,16 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
       }
 
+      // 生成科技風格幾何雷達頭像
       function makeDefaultAvatar(char = "P") {
-        const colors = ["#0284c7", "#2563eb", "#7c3aed", "#059669", "#d97706"];
+        const colors = ["#00f2fe", "#38bdf8", "#818cf8", "#34d399", "#f472b6"];
         const color = colors[Math.floor(Math.random() * colors.length)];
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-          <rect width="64" height="64" rx="16" fill="${color}"/>
-          <text x="32" y="42" font-size="26" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-weight="700" fill="#ffffff" text-anchor="middle">${char.slice(0, 1).toUpperCase()}</text>
+          <rect width="64" height="64" fill="#080e1b"/>
+          <circle cx="32" cy="32" r="28" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="6 3"/>
+          <circle cx="32" cy="32" r="20" fill="none" stroke="${color}" stroke-opacity="0.35" stroke-width="1.5"/>
+          <path d="M 32 4 L 32 60 M 4 32 L 60 32" stroke="${color}" stroke-opacity="0.2" stroke-width="1"/>
+          <text x="32" y="41" font-size="24" font-family="'JetBrains Mono', monospace" font-weight="700" fill="${color}" text-anchor="middle">${char.slice(0, 1).toUpperCase()}</text>
         </svg>`;
         return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
       }
@@ -338,7 +404,7 @@
         return bytes;
       }
 
-      // 發送 MQTT 封包：一律使用 QOS 1
+      // 發送 MQTT 訊息：一律強制 QOS 1
       function sendData(data) {
         if (!client || !client.connected) return false;
         data.senderId = myId;
@@ -347,8 +413,30 @@
       }
 
       /* ============================================================
-         2. 大廳切換與自訂大廳管理
+         2. 自訂大廳與頻道切換 (Modal 實作，解決 prompt 阻擋)
          ============================================================ */
+      function openCreateRoomModal() {
+        document.getElementById("custom-room-input").value = "";
+        document.getElementById("custom-room-modal").classList.remove("hidden");
+        document.getElementById("custom-room-input").focus();
+      }
+
+      function closeCreateRoomModal() {
+        document.getElementById("custom-room-modal").classList.add("hidden");
+      }
+
+      function confirmCreateRoom() {
+        const input = document.getElementById("custom-room-input");
+        const roomName = input.value.trim();
+        if (!roomName) return;
+
+        if (!availableRooms.includes(roomName)) {
+          availableRooms.push(roomName);
+        }
+        closeCreateRoomModal();
+        switchRoom(roomName);
+      }
+
       function renderRoomList() {
         const container = document.getElementById("room-list");
         container.innerHTML = "";
@@ -357,43 +445,31 @@
           const isActive = (room === currentRoom);
           const btn = document.createElement("button");
           btn.onclick = () => switchRoom(room);
-          btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center justify-between ${
+          btn.className = `w-full text-left px-3 py-2 rounded-xl text-xs font-mono-tech transition-all flex items-center justify-between ${
             isActive
-              ? "bg-sky-600 text-white font-semibold shadow"
-              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              ? "bg-cyan-950/70 border border-cyan-400 text-cyan-300 font-bold shadow-[0_0_12px_rgba(0,242,254,0.2)]"
+              : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200 border border-transparent"
           }`;
           btn.innerHTML = `
             <div class="flex items-center gap-2 truncate">
-              <span class="text-xs ${isActive ? 'text-white' : 'text-slate-500'}">#</span>
+              <span class="text-xs ${isActive ? 'text-cyan-400' : 'text-slate-600'}">#</span>
               <span class="truncate">${room}</span>
             </div>
-            ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>' : ''}
+            ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f2fe] flex-shrink-0"></span>' : ''}
           `;
           container.appendChild(btn);
         });
-      }
-
-      function promptCreateRoom() {
-        const name = prompt("請輸入欲自訂的大廳名稱:", "");
-        if (!name) return;
-        const cleanName = name.trim();
-        if (!cleanName) return;
-
-        if (!availableRooms.includes(cleanName)) {
-          availableRooms.push(cleanName);
-        }
-        switchRoom(cleanName);
       }
 
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
         if (currentRoom === newRoom) return;
 
-        // 1. 退出舊大廳 (QoS 1)
+        // 1. 離開舊大廳 (QoS 1)
         sendData({ type: "PLAYER_LEAVE", name: myName });
         client.unsubscribe(currentTopic);
 
-        // 2. 切換大廳狀態
+        // 2. 切換大廳並重置狀態
         currentRoom = newRoom;
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
@@ -406,7 +482,7 @@
 
         appendNotice(`已切換至 [${currentRoom}]`);
 
-        // 3. 訂閱新主題 (QoS 1)
+        // 3. 訂閱新大廳主題 (QoS 1)
         client.subscribe(currentTopic, { qos: 1 }, (err) => {
           if (!err) {
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
@@ -424,9 +500,9 @@
         currentRoom = "公共大廳";
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
-        document.getElementById("conn-hint").innerText = "連線伺服器中 (QoS 1)...";
+        document.getElementById("conn-hint").innerText = "連線中 (QoS 1)...";
 
-        // 連線與遺言 (will) 一律使用 QoS 1
+        // 連線與遺言強制 QoS 1
         client = mqtt.connect(BROKER_URL, {
           clientId: myId,
           clean: true,
@@ -440,10 +516,9 @@
         });
 
         client.on("connect", () => {
-          // 訂閱大廳主題：一律 QoS 1
           client.subscribe(currentTopic, { qos: 1 }, (err) => {
             if (err) {
-              alert("連線大廳失敗，請重新嘗試！");
+              alert("大廳連線失敗，請重試！");
               leaveLobby();
               return;
             }
@@ -458,7 +533,7 @@
             members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
             renderMemberList();
 
-            appendNotice(`歡迎來到公共大廳！(QoS 1 已啟用)`);
+            appendNotice(`歡迎來到公共大廳！(QoS 1 已就緒)`);
 
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
             startHeartbeat();
@@ -474,7 +549,7 @@
         });
 
         client.on("error", () => {
-          document.getElementById("conn-hint").innerText = "連線短暫不穩定，自動連線中...";
+          document.getElementById("conn-hint").innerText = "連線短暫不穩定，自動重連中...";
         });
       }
 
@@ -487,22 +562,22 @@
             appendChatMessage(msg.name, msg.text, msg.avatar, "text", false, senderId);
             break;
 
-          // 步驟 1: 接收端接收到所有封包數與資訊
+          // 步驟 1: 傳送端告知總封包數
           case "FILE_HEADER_START":
             handleFileHeaderStart(msg);
             break;
 
-          // 步驟 2: 每個封包最前面都帶著編號
+          // 步驟 2: 每個封包最前面帶有編號
           case "FILE_CHUNK_DATA":
             handleFileChunkData(msg);
             break;
 
-          // 步驟 3: 傳送端告知本輪結束，接收端比對並發送缺漏封包清單
+          // 步驟 3: 傳送端發送結束，接收端核對缺失
           case "SENDER_TRANSFER_END":
             handleSenderTransferEnd(msg);
             break;
 
-          // 傳送端收到接收端發送的缺漏清單，進行補發
+          // 步驟 4: 傳送端收到接收端的缺失清單，進行補發
           case "REQUEST_MISSING_CHUNKS":
             if (msg.targetId === myId && activeUploads.has(msg.fileId)) {
               const task = activeUploads.get(msg.fileId);
@@ -512,7 +587,7 @@
             }
             break;
 
-          // 步驟 5: 接收端傳送結束通知
+          // 步驟 5: 接收端傳送結束通知，傳送端才真正認定傳輸完成！
           case "RECEIVER_TRANSFER_COMPLETE":
             if (msg.targetId === myId && activeUploads.has(msg.fileId)) {
               const task = activeUploads.get(msg.fileId);
@@ -561,7 +636,7 @@
       }
 
       /* ============================================================
-         3. 自訂精確傳輸協議實作 (依據指定步驟)
+         3. 嚴謹可靠傳輸協議實作 (依據指定步驟，徹底解決提前結束問題)
          ============================================================ */
       function handleFilesSelected(e) {
         const files = Array.from(e.target.files);
@@ -587,7 +662,7 @@
         progBar.classList.remove("hidden");
         progBar.classList.add("flex");
 
-        // 一次處理一個檔案傳輸，以確保缺漏回傳與封包順序精確可靠
+        // 單一隊列順序傳送，確保缺漏核對與完成訊號不紊亂
         if (activeUploads.size === 0 && uploadQueue.length > 0) {
           const file = uploadQueue.shift();
           startReliableTransfer(file).then(() => {
@@ -603,7 +678,7 @@
       function checkFinishedAll() {
         if (activeUploads.size === 0 && uploadQueue.length === 0) {
           const progText = document.getElementById("transfer-progress-text");
-          progText.innerText = "所有檔案傳輸完成！";
+          progText.innerText = "🎉 接收端已全部核對完成，傳輸結束！";
           setTimeout(() => {
             if (uploadQueue.length === 0 && activeUploads.size === 0) {
               const progBar = document.getElementById("transfer-progress-bar");
@@ -623,9 +698,9 @@
         if (activeUploads.size > 0 || uploadQueue.length > 0) {
           let activeSummary = [];
           activeUploads.forEach((task) => {
-            activeSummary.push(`${task.fileName} (${task.pct}%)`);
+            activeSummary.push(`${task.fileName} [${task.statusText}]`);
           });
-          progText.innerText = `傳輸進度 [${completedBatchFiles}/${totalBatchFiles}] 等待: ${uploadQueue.length} | ${activeSummary.join(" | ")}`;
+          progText.innerText = `進度 [${completedBatchFiles}/${totalBatchFiles}] 佇列: ${uploadQueue.length} | ${activeSummary.join(" | ")}`;
         }
       }
 
@@ -654,7 +729,7 @@
           const task = {
             fileName: file.name,
             fileSize: file.size,
-            pct: 0,
+            statusText: "傳送中 0%",
             file,
             totalChunks,
             isCancelled: false,
@@ -677,7 +752,7 @@
             avatar: myAvatar
           });
 
-          // 步驟 2: 傳送封包（最前面帶有編號 index）
+          // 步驟 2: 每個封包最前面都會跟著編號 (index)
           async function sendBatch(indexesToSend) {
             for (const idx of indexesToSend) {
               if (task.isCancelled) return;
@@ -686,7 +761,7 @@
               const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
               const base64Chunk = await readSliceAsBase64(sliceBlob);
 
-              // 每個封包最前面都會跟著編號 (index)
+              // 每個封包最前面附帶編號
               sendData({
                 type: "FILE_CHUNK_DATA",
                 fileId: fileId,
@@ -695,15 +770,19 @@
               });
 
               task.sentChunks.add(idx);
-              task.pct = Math.round((task.sentChunks.size / totalChunks) * 100);
+              const pct = Math.round((task.sentChunks.size / totalChunks) * 100);
+              task.statusText = `傳送中 ${pct}%`;
               updateOverallProgress();
 
-              // 短暫等待，維持 QoS 1 佇列最佳流通
-              await new Promise(r => setTimeout(r, 4));
+              // 微小間隔維護 QoS 1 佇列最佳流通
+              await new Promise(r => setTimeout(r, 6));
             }
 
-            // 步驟 3: 傳送端傳送結束訊號
+            // 步驟 3: 傳送端最後傳送結束
             if (!task.isCancelled) {
+              task.statusText = "已送出，等待接收端確認...";
+              updateOverallProgress();
+
               sendData({
                 type: "SENDER_TRANSFER_END",
                 fileId: fileId
@@ -711,31 +790,23 @@
             }
           }
 
-          // 如果只有自己一個人在房間，不需等待對端核對缺漏
-          if (members.size <= 1) {
-            const initialList = Array.from({ length: totalChunks }, (_, i) => i);
-            await sendBatch(initialList);
-            task.pct = 100;
-            updateOverallProgress();
-            finishTask();
-            return;
-          }
-
-          // 步驟 4: 等待接收端回傳缺漏封包，直到所有封包到齊
+          // 步驟 4 與 5: 傳送端嚴格等待接收端的回應！絕不自行判定傳送完畢
           let transferDone = false;
 
+          // 步驟 5: 接收端傳送結束 -> 傳送端此時才能宣布傳輸完成！
           task.onCompleteConfirmed = () => {
-            // 接收端傳送結束
             transferDone = true;
-            task.pct = 100;
+            task.statusText = "接收端已確認 100%";
             updateOverallProgress();
             finishTask();
           };
 
+          // 步驟 4: 接收端回傳缺漏封包 -> 傳送端補發
           task.onMissingRequested = async (missingIndexes) => {
             if (task.isCancelled || transferDone) return;
             if (missingIndexes && missingIndexes.length > 0) {
-              // 重新發送缺漏封包
+              task.statusText = `補發缺漏 ${missingIndexes.length} 個封包...`;
+              updateOverallProgress();
               await sendBatch(missingIndexes);
             }
           };
@@ -744,10 +815,16 @@
           const allIndexes = Array.from({ length: totalChunks }, (_, i) => i);
           await sendBatch(allIndexes);
 
-          // 超時保護 (若無人響應最多等候 30 秒)
+          // 超時保護：若大廳確實沒有其他人上線接收，最多等待 15 秒保護釋放
           setTimeout(() => {
-            if (!transferDone) finishTask();
-          }, 30000);
+            if (!transferDone) {
+              const otherMembers = Array.from(members.keys()).filter(id => id !== myId);
+              if (otherMembers.length === 0) {
+                appendNotice("提示：大廳內暫無其他成員在線接收檔案。");
+              }
+              finishTask();
+            }
+          }, 15000);
         });
       }
 
@@ -766,13 +843,17 @@
       }
 
       /* ============================================================
-         接收端邏輯：記錄缺漏 -> 傳送端結束時發送缺漏 -> 到齊傳送結束
+         接收端邏輯：
+         1. 記錄總封包數與缺漏
+         2. 記錄收到封包
+         3. 傳送端結束時發送缺漏
+         4. 到齊後接收端傳送結束
          ============================================================ */
       function handleFileHeaderStart(msg) {
         const { fileId, totalChunks, fileName, fileType, fileSize, isImage, name, avatar, senderId } = msg;
         const placeholderId = "box_" + fileId;
 
-        // 初始化追蹤集合：missing 紀錄未收到的封包編號
+        // 初始化追蹤集合：missing 完整記錄未收到的編號
         const missingSet = new Set();
         for (let i = 0; i < totalChunks; i++) {
           missingSet.add(i);
@@ -780,8 +861,8 @@
 
         incomingFiles.set(fileId, {
           chunks: new Array(totalChunks),
-          totalChunks: totalChunks, // 接收總封包數
-          missing: missingSet,      // 紀錄沒收到的封包
+          totalChunks: totalChunks, // 步驟 1: 記錄所有封包數
+          missing: missingSet,      // 接收端紀錄沒收到的封包
           receivedBytes: 0,
           totalBytes: fileSize,
           fileName: fileName,
@@ -798,11 +879,11 @@
         row.id = placeholderId;
         row.className = "flex gap-3 max-w-[85%] self-start flex-row";
         row.innerHTML = `
-          <img src="${avatar}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0 mt-0.5" />
+          <img src="${avatar}" class="w-8 h-8 rounded-lg object-cover border border-cyan-400/50 flex-shrink-0 mt-0.5" />
           <div class="flex flex-col items-start">
-            <span class="text-xs font-medium text-slate-300 mb-1 px-1">${name}</span>
-            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center gap-2 text-xs text-sky-300">
-              <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+            <span class="text-xs font-mono-tech text-cyan-300 mb-1 px-1">${name}</span>
+            <div class="p-3 rounded-xl bg-[#060b17] border border-cyan-500/40 flex items-center gap-2 text-xs font-mono-tech text-cyan-300">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
               <span id="${placeholderId}_txt">正在接收檔案: 0 / ${totalChunks} 封包 (0%)</span>
             </div>
           </div>
@@ -816,11 +897,11 @@
         const pack = incomingFiles.get(fileId);
         if (!pack) return;
 
-        // 接收端記錄收到的封包，並從缺漏清單中剔除該編號
+        // 接收端依編號存入並從 missing 集合中剔除
         if (!pack.chunks[index]) {
           const uint8 = base64ToUint8(chunk);
           pack.chunks[index] = uint8;
-          pack.missing.delete(index); // 記錄已收到
+          pack.missing.delete(index);
           pack.receivedBytes += uint8.length;
 
           const txt = document.getElementById(pack.placeholderId + "_txt");
@@ -836,31 +917,36 @@
         const pack = incomingFiles.get(msg.fileId);
         if (!pack) return;
 
-        // 接收端檢查是否有缺漏的封包
-        if (pack.missing.size > 0) {
-          // 步驟 4: 接收端開始發送缺漏封包清單 (QoS 1)
-          sendData({
-            type: "REQUEST_MISSING_CHUNKS",
-            targetId: pack.senderId,
-            fileId: msg.fileId,
-            missingIndexes: Array.from(pack.missing)
-          });
-        } else {
-          // 步驟 5: 一直重複直到所有封包到齊 -> 接收端傳送結束通知 (QoS 1)
-          sendData({
-            type: "RECEIVER_TRANSFER_COMPLETE",
-            targetId: pack.senderId,
-            fileId: msg.fileId
-          });
+        // 稍等 80ms 讓通道最後幾則訊息完全到位
+        setTimeout(() => {
+          // 步驟 4: 若還有缺漏，接收端開始發送缺漏封包編號
+          if (pack.missing.size > 0) {
+            const txt = document.getElementById(pack.placeholderId + "_txt");
+            if (txt) txt.innerText = `正在請求補發缺漏的 ${pack.missing.size} 個封包...`;
 
-          // 組裝所有封包為完整檔案
-          const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
-          const objectUrl = URL.createObjectURL(fullBlob);
-          finalizeReceivedFile(pack, objectUrl);
+            sendData({
+              type: "REQUEST_MISSING_CHUNKS",
+              targetId: pack.senderId,
+              fileId: msg.fileId,
+              missingIndexes: Array.from(pack.missing)
+            });
+          } else {
+            // 步驟 5: 一直重複直到所有封包到齊 -> 接收端傳送結束 (QoS 1)
+            sendData({
+              type: "RECEIVER_TRANSFER_COMPLETE",
+              targetId: pack.senderId,
+              fileId: msg.fileId
+            });
 
-          pack.chunks = null;
-          incomingFiles.delete(msg.fileId);
-        }
+            // 組裝檔案
+            const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
+            const objectUrl = URL.createObjectURL(fullBlob);
+            finalizeReceivedFile(pack, objectUrl);
+
+            pack.chunks = null;
+            incomingFiles.delete(msg.fileId);
+          }
+        }, 80);
       }
 
       function handleFileTransferCancel(msg) {
@@ -869,7 +955,7 @@
 
         const el = document.getElementById(pack.placeholderId);
         if (el) {
-          el.innerHTML = `<span class="text-xs text-red-400 my-1 px-3 py-1 bg-red-950/40 rounded-lg border border-red-500/30">傳輸已取消。</span>`;
+          el.innerHTML = `<span class="text-xs text-red-400 font-mono-tech my-1 px-3 py-1 bg-red-950/40 rounded-lg border border-red-500/30">傳輸已取消。</span>`;
         }
         pack.chunks = null;
         incomingFiles.delete(msg.fileId);
@@ -882,26 +968,26 @@
         const contentDiv = row.querySelector(".flex-col");
         if (pack.isImage) {
           contentDiv.innerHTML = `
-            <span class="text-xs font-medium text-slate-300 mb-1 px-1">${pack.name}</span>
-            <div class="p-2 rounded-xl bg-slate-800/90 border border-slate-700 flex flex-col gap-2 max-w-xs sm:max-w-sm">
+            <span class="text-xs font-mono-tech text-cyan-300 mb-1 px-1">${pack.name}</span>
+            <div class="p-2.5 rounded-xl bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 max-w-xs sm:max-w-sm">
               <img src="${objectUrl}" class="max-w-full max-h-[260px] rounded-lg object-contain cursor-pointer hover:opacity-90" onclick="showBigImage('${objectUrl}')" />
-              <div class="flex justify-between items-center pt-1 border-t border-slate-700/60">
+              <div class="flex justify-between items-center pt-1 border-t border-cyan-500/20 font-mono-tech">
                 <span class="text-xs text-slate-300 truncate max-w-[140px]">${pack.fileName} (${formatBytes(pack.totalBytes)})</span>
-                <a href="${objectUrl}" download="${pack.fileName}" class="px-2.5 py-1 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded-md transition-colors">下載</a>
+                <a href="${objectUrl}" download="${pack.fileName}" class="cyber-btn px-2.5 py-1 text-xs rounded-lg">下載</a>
               </div>
             </div>
           `;
         } else {
           contentDiv.innerHTML = `
-            <span class="text-xs font-medium text-slate-300 mb-1 px-1">${pack.name}</span>
-            <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700 flex flex-col gap-2 min-w-[220px] max-w-sm">
-              <div class="flex items-center gap-2 font-medium text-white text-xs">
+            <span class="text-xs font-mono-tech text-cyan-300 mb-1 px-1">${pack.name}</span>
+            <div class="p-3 rounded-xl bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 min-w-[220px] max-w-sm font-mono-tech">
+              <div class="flex items-center gap-2 font-bold text-cyan-300 text-xs">
                 <span class="text-base">📄</span>
                 <span class="truncate">${pack.fileName}</span>
               </div>
-              <div class="text-xs text-slate-400">檔案大小: ${formatBytes(pack.totalBytes)}</div>
-              <div class="flex justify-end pt-1 border-t border-slate-700/60">
-                <a href="${objectUrl}" download="${pack.fileName}" class="w-full text-center py-1.5 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded-md transition-colors">下載檔案</a>
+              <div class="text-xs text-slate-400">大小: ${formatBytes(pack.totalBytes)}</div>
+              <div class="flex justify-end pt-1 border-t border-cyan-500/20">
+                <a href="${objectUrl}" download="${pack.fileName}" class="cyber-btn w-full text-center py-1.5 text-xs rounded-lg">下載檔案</a>
               </div>
             </div>
           `;
@@ -910,7 +996,7 @@
       }
 
       /* ============================================================
-         4. 聊天訊息與介面渲染
+         4. 聊天常規訊息與名單渲染
          ============================================================ */
       function sendTextMessage() {
         const input = document.getElementById("chat-input");
@@ -932,15 +1018,15 @@
           const isMe = (id === myId);
           const shortId = id.slice(-3);
           const row = document.createElement("div");
-          row.className = "flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded-lg border border-slate-700/50 text-xs";
+          row.className = "flex items-center justify-between bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-cyan-500/20 text-xs font-mono-tech";
           row.innerHTML = `
             <div class="flex items-center gap-2 overflow-hidden">
-              <img src="${user.avatar}" class="w-6 h-6 rounded-md object-cover border border-slate-600 flex-shrink-0" />
-              <span class="truncate ${isMe ? 'text-sky-300 font-semibold' : 'text-slate-300'}">
-                ${user.name} <span class="text-[10px] text-slate-500">#${shortId}</span> ${isMe ? '<span class="text-[10px] text-sky-400">(你)</span>' : ''}
+              <img src="${user.avatar}" class="w-6 h-6 rounded-md object-cover border border-cyan-400/40 flex-shrink-0" />
+              <span class="truncate ${isMe ? 'text-cyan-300 font-bold' : 'text-slate-300'}">
+                ${user.name} <span class="text-[10px] text-slate-500">#${shortId}</span> ${isMe ? '<span class="text-[10px] text-cyan-400">(你)</span>' : ''}
               </span>
             </div>
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f2fe] flex-shrink-0"></span>
           `;
           container.appendChild(row);
         });
@@ -955,43 +1041,43 @@
 
         if (type === "text") {
           innerContent = `
-            <div class="px-4 py-2.5 rounded-2xl text-sm break-words select-text ${
+            <div class="px-4 py-2.5 rounded-2xl text-sm font-mono-tech break-words select-text ${
               isMe
-                ? "bg-sky-600 text-white rounded-br-none shadow-md"
-                : "bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700"
+                ? "bg-cyan-950/80 text-cyan-100 border border-cyan-400/50 shadow-[0_0_12px_rgba(0,242,254,0.15)]"
+                : "bg-slate-900/90 text-slate-100 border border-slate-700/60"
             }">${data}</div>
           `;
         } else if (type === "image") {
           const { url, fileName, fileSize } = data;
           innerContent = `
-            <div class="p-2 rounded-xl bg-slate-800 border border-slate-700 flex flex-col gap-2 max-w-xs sm:max-w-sm">
-              <img src="${url}" class="max-w-full max-h-[260px] rounded-lg object-contain cursor-pointer hover:opacity-95" onclick="showBigImage('${url}')" />
-              <div class="flex justify-between items-center pt-1 border-t border-slate-700/60">
+            <div class="p-2.5 rounded-xl bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 max-w-xs sm:max-w-sm">
+              <img src="${url}" class="max-w-full max-h-[260px] rounded-lg object-contain cursor-pointer hover:opacity-90" onclick="showBigImage('${url}')" />
+              <div class="flex justify-between items-center pt-1 border-t border-cyan-500/20 font-mono-tech">
                 <span class="text-xs text-slate-300 truncate max-w-[140px]">${fileName} (${formatBytes(fileSize)})</span>
-                <a href="${url}" download="${fileName}" class="px-2 py-1 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded-md transition-colors">下載</a>
+                <a href="${url}" download="${fileName}" class="cyber-btn px-2.5 py-1 text-xs rounded-lg">下載</a>
               </div>
             </div>
           `;
         } else if (type === "file") {
           const { fileName, url, fileSize } = data;
           innerContent = `
-            <div class="p-3 rounded-xl bg-slate-800 border border-slate-700 flex flex-col gap-2 min-w-[200px] max-w-sm">
-              <div class="flex items-center gap-2 font-medium text-white text-xs">
+            <div class="p-3 rounded-xl bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 min-w-[200px] max-w-sm font-mono-tech">
+              <div class="flex items-center gap-2 font-bold text-cyan-300 text-xs">
                 <span class="text-base">📄</span>
                 <span class="truncate">${fileName}</span>
               </div>
               <div class="text-xs text-slate-400">大小: ${formatBytes(fileSize)}</div>
-              <div class="flex justify-end pt-1 border-t border-slate-700/60">
-                <a href="${url}" download="${fileName}" class="w-full text-center py-1.5 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded-md transition-colors">下載檔案</a>
+              <div class="flex justify-end pt-1 border-t border-cyan-500/20">
+                <a href="${url}" download="${fileName}" class="cyber-btn w-full text-center py-1.5 text-xs rounded-lg">下載檔案</a>
               </div>
             </div>
           `;
         }
 
         row.innerHTML = `
-          <img src="${avatar}" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0 mt-0.5" />
+          <img src="${avatar}" class="w-8 h-8 rounded-lg object-cover border border-cyan-400/40 flex-shrink-0 mt-0.5" />
           <div class="flex flex-col ${isMe ? "items-end" : "items-start"}">
-            <span class="text-xs font-medium ${isMe ? "text-sky-300" : "text-slate-400"} mb-1 px-1">${sender}</span>
+            <span class="text-xs font-mono-tech ${isMe ? "text-cyan-300" : "text-slate-400"} mb-1 px-1">${sender}</span>
             ${innerContent}
           </div>
         `;
@@ -1003,7 +1089,7 @@
       function appendNotice(text) {
         const box = document.getElementById("chat-scroller");
         const notice = document.createElement("div");
-        notice.className = "text-xs text-slate-400 text-center my-1.5 bg-slate-800/60 py-1 px-3.5 rounded-full self-center border border-slate-700/50";
+        notice.className = "text-xs text-cyan-300 font-mono-tech text-center my-1.5 bg-cyan-950/40 py-1 px-3.5 rounded-full self-center border border-cyan-500/30";
         notice.textContent = text;
         box.appendChild(notice);
         box.scrollTop = box.scrollHeight;
