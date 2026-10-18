@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>公共大廳聊天室</title>
+    <title>線上聊天大廳</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,11 +21,10 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
         user-select: none;
       }
-      /* 俐落的深色科技質感 */
       .glass-panel {
-        background: rgba(15, 23, 42, 0.85);
+        background: rgba(15, 23, 42, 0.9);
         border: 1px solid rgba(56, 189, 248, 0.2);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
       }
       .custom-btn {
         background: #0284c7;
@@ -37,11 +36,8 @@
         background: #0369a1;
         box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
       }
-      .custom-btn:active {
-        transform: scale(0.98);
-      }
       .input-box {
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(51, 65, 85, 0.8);
         color: #f8fafc;
         transition: all 0.2s ease;
@@ -52,8 +48,8 @@
         box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
       }
       ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+        width: 5px;
+        height: 5px;
       }
       ::-webkit-scrollbar-thumb {
         background: #334155;
@@ -67,16 +63,16 @@
       }
     </style>
   </head>
-  <body class="text-slate-100 flex items-center justify-center min-h-screen p-3 sm:p-5">
+  <body class="text-slate-100 flex items-center justify-center min-h-screen p-2 sm:p-4">
 
     <!-- 1. 登入面板 -->
     <div id="login-panel" class="relative z-10 w-full max-w-sm glass-panel rounded-2xl p-7 flex flex-col gap-5 backdrop-blur-md">
       <div class="text-center">
         <h1 class="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
           <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
-          公共大廳聊天室
+          聊天室大廳
         </h1>
-        <p class="text-xs text-slate-400 mt-1.5">即時線上交流空間</p>
+        <p class="text-xs text-slate-400 mt-1.5">MQTT QoS 1 高可靠連線傳輸</p>
       </div>
 
       <!-- 自訂頭像選取區 -->
@@ -121,105 +117,146 @@
     </div>
 
     <!-- 2. 主聊天大廳介面 -->
-    <div id="lobby-panel" class="relative z-20 hidden w-[96vw] h-[94vh] max-w-6xl glass-panel rounded-2xl p-4 flex flex-col justify-between gap-3 backdrop-blur-md">
+    <div id="lobby-panel" class="relative z-20 hidden w-[98vw] h-[95vh] max-w-7xl glass-panel rounded-2xl shadow-2xl backdrop-blur-md flex overflow-hidden">
       
-      <!-- 頂部資訊列 -->
-      <div class="flex justify-between items-center pb-3 border-b border-slate-700/60 flex-shrink-0">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 px-3 py-1.5 rounded-lg">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-sm font-semibold text-white">公共大廳</span>
+      <!-- [左側] 大廳切換欄 (僅保留公共大廳與自訂大廳) -->
+      <div class="w-56 bg-slate-900/80 border-r border-slate-800 flex flex-col justify-between flex-shrink-0">
+        <div>
+          <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-sky-400"></span> 頻道列表
+            </span>
+            <button onclick="promptCreateRoom()" title="建立或加入自訂大廳" class="px-2 py-0.5 text-xs bg-sky-600 hover:bg-sky-500 text-white rounded font-bold transition-colors">
+              ＋
+            </button>
           </div>
-          <span class="text-xs text-slate-300">
-            線上成員：<span id="online-count" class="text-emerald-400 font-bold">1</span> 人
-          </span>
+
+          <div class="p-2 flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-180px)]" id="room-list">
+            <!-- 由 JS 動態生成大廳項目 -->
+          </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-slate-400">延遲：<span id="ping-stat" class="text-emerald-400 font-medium">0ms</span></span>
-          <button onclick="leaveLobby()" class="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-lg transition-colors">
-            離開大廳
+        <!-- 底部個人資訊 -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between">
+          <div class="flex items-center gap-2 overflow-hidden">
+            <img id="my-profile-avatar" src="" class="w-8 h-8 rounded-lg object-cover border border-slate-700 flex-shrink-0" />
+            <div class="flex flex-col overflow-hidden">
+              <span id="my-profile-name" class="text-xs font-semibold text-white truncate">Player</span>
+              <span class="text-[10px] text-emerald-400">QoS 1 連線中</span>
+            </div>
+          </div>
+          <button onclick="leaveLobby()" title="離開大廳" class="text-xs text-red-400 hover:text-red-300 p-1.5 rounded hover:bg-slate-800">
+            離開
           </button>
         </div>
       </div>
 
-      <!-- 中央內容：聊天訊息 + 在線名單 -->
-      <div class="flex-1 flex gap-3 overflow-hidden">
-        <!-- 聊天捲軸區 -->
-        <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between overflow-hidden">
-          <div id="chat-scroller" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 text-sm"></div>
-        </div>
-
-        <!-- 右側線上成員 -->
-        <div class="w-60 bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col flex-shrink-0">
-          <div class="text-xs font-semibold text-slate-300 mb-2.5 pb-2 border-b border-slate-700/60 flex justify-between items-center">
-            <span>線上好友</span>
-            <span class="text-emerald-400 text-[11px] font-normal">即時同步</span>
+      <!-- [中央與右側] 主聊天室與成員 -->
+      <div class="flex-1 flex flex-col justify-between overflow-hidden">
+        
+        <!-- 頂部資訊列 -->
+        <div class="px-4 py-2.5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center flex-shrink-0">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-700/80 px-3 py-1 rounded-lg">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="lobby-title" class="text-xs font-semibold text-white">大廳: 公共大廳</span>
+            </div>
+            <span class="text-xs text-slate-300">
+              線上成員：<span id="online-count" class="text-emerald-400 font-bold">1</span> 人
+            </span>
           </div>
-          <div id="player-list" class="flex-1 overflow-y-auto flex flex-col gap-1.5"></div>
-        </div>
-      </div>
 
-      <!-- 底部輸入與發送列 -->
-      <div class="pt-1 flex flex-col gap-2 flex-shrink-0">
-        <div class="flex items-center gap-2">
-          <input id="file-upload-input" type="file" multiple class="hidden" onchange="handleFilesSelected(event)" />
-
-          <button onclick="document.getElementById('file-upload-input').click()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600/80 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
-            <span>📎 傳送檔案</span>
-          </button>
-
-          <!-- 傳輸進度狀態列 -->
-          <div id="transfer-progress-bar" class="hidden items-center gap-2 bg-slate-900 border border-sky-500/40 px-3 py-1 rounded-lg text-xs text-sky-300">
-            <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-            <span id="transfer-progress-text">準備傳輸中...</span>
-            <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-medium">取消傳輸</button>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-slate-400">延遲：<span id="ping-stat" class="text-emerald-400 font-medium">0ms</span></span>
           </div>
         </div>
 
-        <div class="flex gap-2">
-          <input
-            id="chat-input"
-            type="text"
-            maxlength="300"
-            placeholder="說點什麼吧... (按 Enter 發送)"
-            onkeydown="if(event.key === 'Enter') sendTextMessage();"
-            class="input-box flex-1 px-4 py-2.5 rounded-xl text-sm"
-          />
-          <button onclick="sendTextMessage()" class="custom-btn px-6 py-2.5 rounded-xl text-sm font-semibold">
-            發送
-          </button>
+        <!-- 中央區塊：聊天訊息 + 在線成員名單 -->
+        <div class="flex-1 flex overflow-hidden p-3 gap-3">
+          <!-- 聊天捲軸區 -->
+          <div class="flex-1 bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between overflow-hidden">
+            <div id="chat-scroller" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 text-sm"></div>
+          </div>
+
+          <!-- 右側在線人員 -->
+          <div class="w-56 bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col flex-shrink-0">
+            <div class="text-xs font-semibold text-slate-300 mb-2 pb-2 border-b border-slate-700/60 flex justify-between items-center">
+              <span>大廳成員</span>
+              <span class="text-emerald-400 text-[11px] font-normal">即時同步</span>
+            </div>
+            <div id="player-list" class="flex-1 overflow-y-auto flex flex-col gap-1.5"></div>
+          </div>
+        </div>
+
+        <!-- 底部通訊工具列 -->
+        <div class="p-3 border-t border-slate-800 bg-slate-950/40 flex flex-col gap-2 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <input id="file-upload-input" type="file" multiple class="hidden" onchange="handleFilesSelected(event)" />
+
+            <button onclick="document.getElementById('file-upload-input').click()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <span>📎 傳送檔案</span>
+            </button>
+
+            <!-- 傳輸進度狀態列 -->
+            <div id="transfer-progress-bar" class="hidden items-center gap-2 bg-slate-900 border border-sky-500/40 px-3 py-1 rounded-lg text-xs text-sky-300">
+              <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+              <span id="transfer-progress-text">準備傳輸中...</span>
+              <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-medium">取消</button>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <input
+              id="chat-input"
+              type="text"
+              maxlength="300"
+              placeholder="輸入訊息... (按 Enter 發送)"
+              onkeydown="if(event.key === 'Enter') sendTextMessage();"
+              class="input-box flex-1 px-4 py-2.5 rounded-xl text-sm"
+            />
+            <button onclick="sendTextMessage()" class="custom-btn px-6 py-2.5 rounded-xl text-sm font-semibold">
+              發送
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 圖片點擊放大彈窗 -->
+    <!-- 圖片放大預覽視窗 -->
     <div id="image-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center hidden p-4" onclick="this.classList.add('hidden')">
       <img id="image-modal-preview" src="" class="max-w-full max-h-[90vh] object-contain rounded-xl border border-slate-700 shadow-2xl" />
     </div>
 
     <script>
       /* ============================================================
-         1. 核心網路通訊與大廳狀態管理
+         1. 核心網路通訊與大廳狀態管理 (一律 QOS 1)
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const PUBLIC_TOPIC = "chat_lobby_public_v1/room_common";
+      const LOBBY_PREFIX = "chat_reliable_v2/";
       
       let myId = "";
       let client = null;
       let myName = "Player";
       let myAvatar = "";
 
+      // 只有公共大廳與自訂大廳
+      const availableRooms = ["公共大廳"];
+      let currentRoom = "公共大廳";
+      let currentTopic = "";
+
       const members = new Map();
       let pingLoop = null;
       let checkLoop = null;
 
-      // 4 通道流水線傳輸管理池
+      // 檔案傳輸任務池
       const uploadQueue = [];
       let totalBatchFiles = 0;
       let completedBatchFiles = 0;
       const activeUploads = new Map();
-      const incomingChunks = new Map();
+      const incomingFiles = new Map();
+
+      // 切片大小：64KB，在 QoS 1 下具備極佳穩定度與確認速度
+      const CHUNK_SIZE = 64 * 1024;
 
       function formatBytes(bytes) {
         if (!bytes || bytes === 0) return "0 B";
@@ -272,14 +309,108 @@
         reader.readAsDataURL(file);
       }
 
-      function waitForReconnect() {
-        return new Promise((resolve) => {
-          const timer = setInterval(() => {
-            if (client && client.connected) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, 200);
+      function getSafeTopic(roomName) {
+        let hash = 0;
+        for (let i = 0; i < roomName.length; i++) hash = ((hash << 5) - hash) + roomName.charCodeAt(i);
+        return "room_" + Math.abs(hash);
+      }
+
+      function readSliceAsBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            const commaIndex = dataUrl.indexOf(",");
+            resolve(commaIndex !== -1 ? dataUrl.substring(commaIndex + 1) : dataUrl);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      function base64ToUint8(base64) {
+        const binStr = atob(base64);
+        const len = binStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binStr.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      // 發送 MQTT 封包：一律使用 QOS 1
+      function sendData(data) {
+        if (!client || !client.connected) return false;
+        data.senderId = myId;
+        client.publish(currentTopic, JSON.stringify(data), { qos: 1 });
+        return true;
+      }
+
+      /* ============================================================
+         2. 大廳切換與自訂大廳管理
+         ============================================================ */
+      function renderRoomList() {
+        const container = document.getElementById("room-list");
+        container.innerHTML = "";
+
+        availableRooms.forEach(room => {
+          const isActive = (room === currentRoom);
+          const btn = document.createElement("button");
+          btn.onclick = () => switchRoom(room);
+          btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs transition-all flex items-center justify-between ${
+            isActive
+              ? "bg-sky-600 text-white font-semibold shadow"
+              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+          }`;
+          btn.innerHTML = `
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-xs ${isActive ? 'text-white' : 'text-slate-500'}">#</span>
+              <span class="truncate">${room}</span>
+            </div>
+            ${isActive ? '<span class="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0"></span>' : ''}
+          `;
+          container.appendChild(btn);
+        });
+      }
+
+      function promptCreateRoom() {
+        const name = prompt("請輸入欲自訂的大廳名稱:", "");
+        if (!name) return;
+        const cleanName = name.trim();
+        if (!cleanName) return;
+
+        if (!availableRooms.includes(cleanName)) {
+          availableRooms.push(cleanName);
+        }
+        switchRoom(cleanName);
+      }
+
+      function switchRoom(newRoom) {
+        if (!client || !client.connected) return;
+        if (currentRoom === newRoom) return;
+
+        // 1. 退出舊大廳 (QoS 1)
+        sendData({ type: "PLAYER_LEAVE", name: myName });
+        client.unsubscribe(currentTopic);
+
+        // 2. 切換大廳狀態
+        currentRoom = newRoom;
+        currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
+
+        members.clear();
+        members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
+        document.getElementById("chat-scroller").innerHTML = "";
+        document.getElementById("lobby-title").innerText = `大廳: ${currentRoom}`;
+        renderMemberList();
+        renderRoomList();
+
+        appendNotice(`已切換至 [${currentRoom}]`);
+
+        // 3. 訂閱新主題 (QoS 1)
+        client.subscribe(currentTopic, { qos: 1 }, (err) => {
+          if (!err) {
+            sendData({ type: "HELLO", name: myName, avatar: myAvatar });
+          }
         });
       }
 
@@ -290,22 +421,27 @@
         myName = nameInput || "Player";
         if (!myAvatar) myAvatar = makeDefaultAvatar(myName);
 
-        document.getElementById("conn-hint").innerText = "連線伺服器中...";
+        currentRoom = "公共大廳";
+        currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
+        document.getElementById("conn-hint").innerText = "連線伺服器中 (QoS 1)...";
+
+        // 連線與遺言 (will) 一律使用 QoS 1
         client = mqtt.connect(BROKER_URL, {
           clientId: myId,
           clean: true,
           connectTimeout: 10000,
           reconnectPeriod: 2000,
           will: {
-            topic: PUBLIC_TOPIC,
+            topic: currentTopic,
             payload: JSON.stringify({ type: "PLAYER_LEAVE", senderId: myId, name: myName }),
-            qos: 0
+            qos: 1
           }
         });
 
         client.on("connect", () => {
-          client.subscribe(PUBLIC_TOPIC, { qos: 0 }, (err) => {
+          // 訂閱大廳主題：一律 QoS 1
+          client.subscribe(currentTopic, { qos: 1 }, (err) => {
             if (err) {
               alert("連線大廳失敗，請重新嘗試！");
               leaveLobby();
@@ -314,11 +450,15 @@
 
             document.getElementById("login-panel").classList.add("hidden");
             document.getElementById("lobby-panel").classList.remove("hidden");
+            document.getElementById("lobby-title").innerText = `大廳: ${currentRoom}`;
+            document.getElementById("my-profile-name").innerText = myName;
+            document.getElementById("my-profile-avatar").src = myAvatar;
 
+            renderRoomList();
             members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
             renderMemberList();
 
-            appendNotice(`歡迎來到公共大廳！`);
+            appendNotice(`歡迎來到公共大廳！(QoS 1 已啟用)`);
 
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
             startHeartbeat();
@@ -334,15 +474,8 @@
         });
 
         client.on("error", () => {
-          document.getElementById("conn-hint").innerText = "連線不穩定，正在自動重新連線...";
+          document.getElementById("conn-hint").innerText = "連線短暫不穩定，自動連線中...";
         });
-      }
-
-      function sendData(data) {
-        if (!client || !client.connected) return false;
-        data.senderId = myId;
-        client.publish(PUBLIC_TOPIC, JSON.stringify(data), { qos: 0 });
-        return true;
       }
 
       function handleMessage(msg) {
@@ -354,41 +487,43 @@
             appendChatMessage(msg.name, msg.text, msg.avatar, "text", false, senderId);
             break;
 
-          case "CHUNK_TRANSFER_START":
-            handleTransferStart(msg);
+          // 步驟 1: 接收端接收到所有封包數與資訊
+          case "FILE_HEADER_START":
+            handleFileHeaderStart(msg);
             break;
 
-          case "CHUNK_DATA":
-            handleChunkData(msg);
+          // 步驟 2: 每個封包最前面都帶著編號
+          case "FILE_CHUNK_DATA":
+            handleFileChunkData(msg);
             break;
 
-          case "CHUNK_TRANSFER_CANCEL":
-            handleTransferCancel(msg);
+          // 步驟 3: 傳送端告知本輪結束，接收端比對並發送缺漏封包清單
+          case "SENDER_TRANSFER_END":
+            handleSenderTransferEnd(msg);
             break;
 
-          case "WINDOW_ACK":
+          // 傳送端收到接收端發送的缺漏清單，進行補發
+          case "REQUEST_MISSING_CHUNKS":
             if (msg.targetId === myId && activeUploads.has(msg.fileId)) {
               const task = activeUploads.get(msg.fileId);
-              if (task && task.windowWaiters && task.windowWaiters.has(msg.windowIndex)) {
-                task.windowWaiters.get(msg.windowIndex).onAck();
+              if (task && task.onMissingRequested) {
+                task.onMissingRequested(msg.missingIndexes);
               }
             }
             break;
 
-          case "WINDOW_NACK":
+          // 步驟 5: 接收端傳送結束通知
+          case "RECEIVER_TRANSFER_COMPLETE":
             if (msg.targetId === myId && activeUploads.has(msg.fileId)) {
               const task = activeUploads.get(msg.fileId);
-              if (task && task.windowWaiters && task.windowWaiters.has(msg.windowIndex)) {
-                task.windowWaiters.get(msg.windowIndex).onNack(msg.missing);
+              if (task && task.onCompleteConfirmed) {
+                task.onCompleteConfirmed();
               }
             }
             break;
 
-          case "TRANSFER_CONFIRMED_SUCCESS":
-            if (msg.targetId === myId && activeUploads.has(msg.fileId)) {
-              const task = activeUploads.get(msg.fileId);
-              if (task && task.onConfirmed) task.onConfirmed();
-            }
+          case "FILE_TRANSFER_CANCEL":
+            handleFileTransferCancel(msg);
             break;
 
           case "HELLO":
@@ -426,34 +561,8 @@
       }
 
       /* ============================================================
-         2. 4 通道流水線 + 256KB 大封包高速傳輸引擎
+         3. 自訂精確傳輸協議實作 (依據指定步驟)
          ============================================================ */
-      const CHUNK_SIZE = 256 * 1024;
-      const WINDOW_SIZE = 2;
-
-      function readSliceAsBase64(blob) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const dataUrl = reader.result;
-            const commaIndex = dataUrl.indexOf(",");
-            resolve(commaIndex !== -1 ? dataUrl.substring(commaIndex + 1) : dataUrl);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
-
-      function base64ToUint8(base64) {
-        const binStr = atob(base64);
-        const len = binStr.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binStr.charCodeAt(i);
-        }
-        return bytes;
-      }
-
       function handleFilesSelected(e) {
         const files = Array.from(e.target.files);
         if (!files || files.length === 0) return;
@@ -464,12 +573,12 @@
         }
         e.target.value = "";
 
-        processUploadPool();
+        processUploadQueue();
       }
 
-      function processUploadPool() {
+      function processUploadQueue() {
         if (!client || !client.connected) {
-          alert("尚未連上伺服器，請稍後再試！");
+          alert("尚未連線至伺服器！");
           uploadQueue.length = 0;
           return;
         }
@@ -478,24 +587,14 @@
         progBar.classList.remove("hidden");
         progBar.classList.add("flex");
 
-        if (activeUploads.size === 0 && uploadQueue.length === 1) {
+        // 一次處理一個檔案傳輸，以確保缺漏回傳與封包順序精確可靠
+        if (activeUploads.size === 0 && uploadQueue.length > 0) {
           const file = uploadQueue.shift();
-          streamFileWithChannels(file, 4).then(() => {
+          startReliableTransfer(file).then(() => {
             completedBatchFiles++;
             updateOverallProgress();
             checkFinishedAll();
-          });
-          updateOverallProgress();
-          return;
-        }
-
-        while (activeUploads.size < 2 && uploadQueue.length > 0) {
-          const file = uploadQueue.shift();
-          streamFileWithChannels(file, 2).then(() => {
-            completedBatchFiles++;
-            updateOverallProgress();
-            checkFinishedAll();
-            processUploadPool();
+            processUploadQueue();
           });
         }
         updateOverallProgress();
@@ -526,17 +625,17 @@
           activeUploads.forEach((task) => {
             activeSummary.push(`${task.fileName} (${task.pct}%)`);
           });
-          progText.innerText = `傳輸進度 [${completedBatchFiles}/${totalBatchFiles}] 等待中: ${uploadQueue.length} | ${activeSummary.join(" | ")}`;
+          progText.innerText = `傳輸進度 [${completedBatchFiles}/${totalBatchFiles}] 等待: ${uploadQueue.length} | ${activeSummary.join(" | ")}`;
         }
       }
 
-      function streamFileWithChannels(file, channels = 4) {
+      function startReliableTransfer(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
           const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-          const totalWindows = Math.ceil(totalChunks / WINDOW_SIZE);
           const fileId = "f_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
 
+          // 本地即時預覽
           const localBlobUrl = URL.createObjectURL(file);
           if (isImage) {
             appendChatMessage(myName, { url: localBlobUrl, fileName: file.name, fileSize: file.size }, myAvatar, "image", true, myId);
@@ -545,7 +644,7 @@
           }
 
           let isResolved = false;
-          const finishThisFile = () => {
+          const finishTask = () => {
             if (isResolved) return;
             isResolved = true;
             activeUploads.delete(fileId);
@@ -554,141 +653,101 @@
 
           const task = {
             fileName: file.name,
-            channels: channels,
+            fileSize: file.size,
             pct: 0,
             file,
             totalChunks,
-            totalWindows,
             isCancelled: false,
             sentChunks: new Set(),
-            windowWaiters: new Map(),
-            onConfirmed: null
+            onMissingRequested: null,
+            onCompleteConfirmed: null
           };
           activeUploads.set(fileId, task);
 
+          // 步驟 1: 先傳送一個數字代表所有封包數 (totalChunks)
           sendData({
-            type: "CHUNK_TRANSFER_START",
+            type: "FILE_HEADER_START",
             fileId: fileId,
-            totalChunks: totalChunks,
-            totalWindows: totalWindows,
+            totalChunks: totalChunks, // 傳送封包總數
             fileName: file.name,
-            fileType: file.type || "application/octet-stream",
             fileSize: file.size,
+            fileType: file.type || "application/octet-stream",
             isImage: isImage,
             name: myName,
             avatar: myAvatar
           });
 
-          let nextWindowIdx = 0;
-
-          async function channelWorker(workerId) {
-            while (nextWindowIdx < totalWindows && !task.isCancelled) {
-              const w = nextWindowIdx++;
-              await sendSingleWindow(w);
-            }
-          }
-
-          async function sendSingleWindow(w) {
-            if (task.isCancelled) return;
-
-            const startIdx = w * WINDOW_SIZE;
-            const endIdx = Math.min(startIdx + WINDOW_SIZE, totalChunks);
-            let windowConfirmed = false;
-            let retryCount = 0;
-
-            while (!windowConfirmed && retryCount < 8) {
+          // 步驟 2: 傳送封包（最前面帶有編號 index）
+          async function sendBatch(indexesToSend) {
+            for (const idx of indexesToSend) {
               if (task.isCancelled) return;
-              if (!client || !client.connected) await waitForReconnect();
 
-              for (let i = startIdx; i < endIdx; i++) {
-                const offset = i * CHUNK_SIZE;
-                const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
-                const base64Chunk = await readSliceAsBase64(sliceBlob);
+              const offset = idx * CHUNK_SIZE;
+              const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
+              const base64Chunk = await readSliceAsBase64(sliceBlob);
 
-                const isWindowEnd = (i === endIdx - 1);
-                sendData({
-                  type: "CHUNK_DATA",
-                  fileId: fileId,
-                  index: i,
-                  windowIndex: w,
-                  isWindowEnd: isWindowEnd,
-                  chunk: base64Chunk
-                });
+              // 每個封包最前面都會跟著編號 (index)
+              sendData({
+                type: "FILE_CHUNK_DATA",
+                fileId: fileId,
+                index: idx, // 封包編號
+                chunk: base64Chunk
+              });
 
-                task.sentChunks.add(i);
-                await new Promise((r) => setTimeout(r, 3));
-              }
-
+              task.sentChunks.add(idx);
               task.pct = Math.round((task.sentChunks.size / totalChunks) * 100);
               updateOverallProgress();
 
-              if (members.size <= 1) {
-                windowConfirmed = true;
-                break;
-              }
+              // 短暫等待，維持 QoS 1 佇列最佳流通
+              await new Promise(r => setTimeout(r, 4));
+            }
 
-              const ackResult = await new Promise((ackResolve) => {
-                const timer = setTimeout(() => {
-                  task.windowWaiters.delete(w);
-                  ackResolve({ status: "TIMEOUT" });
-                }, 1400);
-
-                task.windowWaiters.set(w, {
-                  onAck: () => {
-                    clearTimeout(timer);
-                    task.windowWaiters.delete(w);
-                    ackResolve({ status: "ACK" });
-                  },
-                  onNack: async (missing) => {
-                    clearTimeout(timer);
-                    task.windowWaiters.delete(w);
-                    for (const mIdx of missing) {
-                      const offset = mIdx * CHUNK_SIZE;
-                      const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
-                      const base64Chunk = await readSliceAsBase64(sliceBlob);
-                      sendData({
-                        type: "CHUNK_DATA",
-                        fileId: fileId,
-                        index: mIdx,
-                        windowIndex: w,
-                        isWindowEnd: (mIdx === endIdx - 1),
-                        chunk: base64Chunk
-                      });
-                      await new Promise((r) => setTimeout(r, 3));
-                    }
-                    ackResolve({ status: "RETRY" });
-                  }
-                });
+            // 步驟 3: 傳送端傳送結束訊號
+            if (!task.isCancelled) {
+              sendData({
+                type: "SENDER_TRANSFER_END",
+                fileId: fileId
               });
-
-              if (ackResult.status === "ACK") {
-                windowConfirmed = true;
-              } else {
-                retryCount++;
-                await new Promise((r) => setTimeout(r, 40));
-              }
             }
           }
 
-          const activeWorkerPromises = [];
-          const actualChannels = Math.min(channels, totalWindows);
-          for (let c = 0; c < actualChannels; c++) {
-            activeWorkerPromises.push(channelWorker(c));
+          // 如果只有自己一個人在房間，不需等待對端核對缺漏
+          if (members.size <= 1) {
+            const initialList = Array.from({ length: totalChunks }, (_, i) => i);
+            await sendBatch(initialList);
+            task.pct = 100;
+            updateOverallProgress();
+            finishTask();
+            return;
           }
 
-          await Promise.all(activeWorkerPromises);
+          // 步驟 4: 等待接收端回傳缺漏封包，直到所有封包到齊
+          let transferDone = false;
 
-          if (members.size > 1 && !task.isCancelled) {
-            await new Promise((finalResolve) => {
-              const timer = setTimeout(() => finalResolve(), 4000);
-              task.onConfirmed = () => {
-                clearTimeout(timer);
-                finalResolve();
-              };
-            });
-          }
+          task.onCompleteConfirmed = () => {
+            // 接收端傳送結束
+            transferDone = true;
+            task.pct = 100;
+            updateOverallProgress();
+            finishTask();
+          };
 
-          finishThisFile();
+          task.onMissingRequested = async (missingIndexes) => {
+            if (task.isCancelled || transferDone) return;
+            if (missingIndexes && missingIndexes.length > 0) {
+              // 重新發送缺漏封包
+              await sendBatch(missingIndexes);
+            }
+          };
+
+          // 首次將所有封包發出 (0 到 totalChunks - 1)
+          const allIndexes = Array.from({ length: totalChunks }, (_, i) => i);
+          await sendBatch(allIndexes);
+
+          // 超時保護 (若無人響應最多等候 30 秒)
+          setTimeout(() => {
+            if (!transferDone) finishTask();
+          }, 30000);
         });
       }
 
@@ -698,33 +757,40 @@
         completedBatchFiles = 0;
         activeUploads.forEach((task, fileId) => {
           task.isCancelled = true;
-          sendData({ type: "CHUNK_TRANSFER_CANCEL", fileId: fileId });
+          sendData({ type: "FILE_TRANSFER_CANCEL", fileId: fileId });
         });
         activeUploads.clear();
         document.getElementById("transfer-progress-bar").classList.add("hidden");
         document.getElementById("transfer-progress-bar").classList.remove("flex");
-        appendNotice("已取消傳輸任務。");
+        appendNotice("已取消所有傳輸任務。");
       }
 
-      function handleTransferStart(msg) {
-        const { fileId, totalChunks, totalWindows, fileName, fileType, fileSize, isImage, name, avatar, senderId } = msg;
+      /* ============================================================
+         接收端邏輯：記錄缺漏 -> 傳送端結束時發送缺漏 -> 到齊傳送結束
+         ============================================================ */
+      function handleFileHeaderStart(msg) {
+        const { fileId, totalChunks, fileName, fileType, fileSize, isImage, name, avatar, senderId } = msg;
         const placeholderId = "box_" + fileId;
 
-        incomingChunks.set(fileId, {
+        // 初始化追蹤集合：missing 紀錄未收到的封包編號
+        const missingSet = new Set();
+        for (let i = 0; i < totalChunks; i++) {
+          missingSet.add(i);
+        }
+
+        incomingFiles.set(fileId, {
           chunks: new Array(totalChunks),
-          receivedCount: 0,
-          totalChunks: totalChunks,
-          totalWindows: totalWindows,
+          totalChunks: totalChunks, // 接收總封包數
+          missing: missingSet,      // 紀錄沒收到的封包
+          receivedBytes: 0,
+          totalBytes: fileSize,
           fileName: fileName,
           fileType: fileType,
-          fileSize: fileSize,
           isImage: isImage,
           name: name,
           avatar: avatar,
           senderId: senderId,
-          placeholderId: placeholderId,
-          receivedBytes: 0,
-          totalBytes: fileSize
+          placeholderId: placeholderId
         });
 
         const box = document.getElementById("chat-scroller");
@@ -737,7 +803,7 @@
             <span class="text-xs font-medium text-slate-300 mb-1 px-1">${name}</span>
             <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center gap-2 text-xs text-sky-300">
               <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-              <span id="${placeholderId}_txt">正在接收檔案: 0 B / ${formatBytes(fileSize)} (0%)</span>
+              <span id="${placeholderId}_txt">正在接收檔案: 0 / ${totalChunks} 封包 (0%)</span>
             </div>
           </div>
         `;
@@ -745,70 +811,60 @@
         box.scrollTop = box.scrollHeight;
       }
 
-      function handleChunkData(msg) {
-        const { fileId, index, windowIndex, isWindowEnd, chunk } = msg;
-        const pack = incomingChunks.get(fileId);
+      function handleFileChunkData(msg) {
+        const { fileId, index, chunk } = msg;
+        const pack = incomingFiles.get(fileId);
         if (!pack) return;
 
+        // 接收端記錄收到的封包，並從缺漏清單中剔除該編號
         if (!pack.chunks[index]) {
           const uint8 = base64ToUint8(chunk);
           pack.chunks[index] = uint8;
-          pack.receivedCount++;
+          pack.missing.delete(index); // 記錄已收到
           pack.receivedBytes += uint8.length;
 
           const txt = document.getElementById(pack.placeholderId + "_txt");
           if (txt) {
-            const pct = Math.round((pack.receivedCount / pack.totalChunks) * 100);
-            txt.innerText = `正在接收檔案: ${formatBytes(pack.receivedBytes)} / ${formatBytes(pack.totalBytes)} (${pct}%)`;
-          }
-        }
-
-        if (isWindowEnd || index === pack.totalChunks - 1) {
-          const startIdx = windowIndex * WINDOW_SIZE;
-          const endIdx = Math.min(startIdx + WINDOW_SIZE, pack.totalChunks);
-          const missing = [];
-
-          for (let i = startIdx; i < endIdx; i++) {
-            if (!pack.chunks[i]) missing.push(i);
-          }
-
-          if (missing.length === 0) {
-            sendData({
-              type: "WINDOW_ACK",
-              targetId: pack.senderId,
-              fileId: fileId,
-              windowIndex: windowIndex
-            });
-
-            if (pack.receivedCount === pack.totalChunks) {
-              const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
-              const objectUrl = URL.createObjectURL(fullBlob);
-
-              finalizeReceivedFile(pack, objectUrl);
-
-              sendData({
-                type: "TRANSFER_CONFIRMED_SUCCESS",
-                targetId: pack.senderId,
-                fileId: fileId
-              });
-
-              pack.chunks = null;
-              incomingChunks.delete(fileId);
-            }
-          } else {
-            sendData({
-              type: "WINDOW_NACK",
-              targetId: pack.senderId,
-              fileId: fileId,
-              windowIndex: windowIndex,
-              missing: missing
-            });
+            const receivedCount = pack.totalChunks - pack.missing.size;
+            const pct = Math.round((receivedCount / pack.totalChunks) * 100);
+            txt.innerText = `正在接收檔案: ${receivedCount} / ${pack.totalChunks} 封包 (${pct}%)`;
           }
         }
       }
 
-      function handleTransferCancel(msg) {
-        const pack = incomingChunks.get(msg.fileId);
+      function handleSenderTransferEnd(msg) {
+        const pack = incomingFiles.get(msg.fileId);
+        if (!pack) return;
+
+        // 接收端檢查是否有缺漏的封包
+        if (pack.missing.size > 0) {
+          // 步驟 4: 接收端開始發送缺漏封包清單 (QoS 1)
+          sendData({
+            type: "REQUEST_MISSING_CHUNKS",
+            targetId: pack.senderId,
+            fileId: msg.fileId,
+            missingIndexes: Array.from(pack.missing)
+          });
+        } else {
+          // 步驟 5: 一直重複直到所有封包到齊 -> 接收端傳送結束通知 (QoS 1)
+          sendData({
+            type: "RECEIVER_TRANSFER_COMPLETE",
+            targetId: pack.senderId,
+            fileId: msg.fileId
+          });
+
+          // 組裝所有封包為完整檔案
+          const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
+          const objectUrl = URL.createObjectURL(fullBlob);
+          finalizeReceivedFile(pack, objectUrl);
+
+          pack.chunks = null;
+          incomingFiles.delete(msg.fileId);
+        }
+      }
+
+      function handleFileTransferCancel(msg) {
+        const pack = incomingFiles.get(msg.fileId);
         if (!pack) return;
 
         const el = document.getElementById(pack.placeholderId);
@@ -816,7 +872,7 @@
           el.innerHTML = `<span class="text-xs text-red-400 my-1 px-3 py-1 bg-red-950/40 rounded-lg border border-red-500/30">傳輸已取消。</span>`;
         }
         pack.chunks = null;
-        incomingChunks.delete(msg.fileId);
+        incomingFiles.delete(msg.fileId);
       }
 
       function finalizeReceivedFile(pack, objectUrl) {
@@ -854,7 +910,7 @@
       }
 
       /* ============================================================
-         3. 聊天訊息發送與畫面渲染
+         4. 聊天訊息與介面渲染
          ============================================================ */
       function sendTextMessage() {
         const input = document.getElementById("chat-input");
@@ -996,7 +1052,7 @@
         document.getElementById("lobby-panel").classList.add("hidden");
         document.getElementById("login-panel").classList.remove("hidden");
         document.getElementById("chat-scroller").innerHTML = "";
-        document.getElementById("conn-hint").innerText = "已離開公共大廳";
+        document.getElementById("conn-hint").innerText = "已離開大廳";
       }
 
       window.onload = () => {
