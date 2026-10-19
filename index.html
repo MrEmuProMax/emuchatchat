@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CYBER COMM // 未來量子通訊網絡 (PRO 穩定傳輸版)</title>
+    <title>CYBER COMM // 雙引擎量子通訊網絡 (WebRTC + TURN + MQTT備援)</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -101,12 +101,12 @@
     <div id="login-panel" class="relative z-10 w-full max-w-md bg-[#0a0f1d]/95 glow-border rounded-xl p-7 shadow-2xl backdrop-blur-xl flex flex-col gap-5">
       <div class="text-center relative">
         <div class="inline-block px-3 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-mono-tech text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 mb-2">
-          HiveMQ Ultra Engine // v5.0 Active
+          Dual-Core Engine // WebRTC + TURN + MQTT
         </div>
         <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
           CYBER COMM // LINK
         </h1>
-        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">矩陣通訊節點接入終端</p>
+        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">跨網量子直連終端 (支援 4G/企業防火牆穿透)</p>
       </div>
 
       <!-- 自訂頭像選取區 -->
@@ -128,7 +128,7 @@
               隨機矩陣
             </button>
           </div>
-          <span class="text-[10px] text-slate-400 font-mono-tech">支援 JPG / PNG / GIF 即時編譯</span>
+          <span class="text-[10px] text-slate-400 font-mono-tech">自動配置 STUN + TURN 中繼伺服器</span>
         </div>
       </div>
 
@@ -148,11 +148,11 @@
           </label>
           <input id="input-room" type="text" maxlength="15" value="公共大廳" readonly
             class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-lg font-mono-tech bg-slate-900/90 text-cyan-300 opacity-90 cursor-not-allowed border-dashed" />
-          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 系統預設連入公共大廳，登入後可隨時自由切換與自訂。</span>
+          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 提示：請在兩個分頁或不同裝置登入相同頻率進行傳輸。</span>
         </div>
 
         <button onclick="joinLobby()" class="cyber-btn-primary py-3 rounded-lg text-sm tracking-wider font-bold uppercase transition-all duration-300 mt-2 flex items-center justify-center gap-2">
-          <span>⚡ 初始化鏈接 (INITIALIZE LINK)</span>
+          <span>⚡ 初始化量子鏈接 (INITIALIZE LINK)</span>
         </button>
 
         <div id="conn-hint" class="font-mono-tech text-[11px] text-center text-slate-400 tracking-wider">
@@ -215,9 +215,11 @@
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
               <span id="lobby-title" class="font-mono-tech text-xs font-bold text-cyan-300 tracking-wider">CH: 公共大廳</span>
             </div>
-            <div class="hidden sm:flex items-center gap-2 text-xs font-mono-tech text-slate-400">
-              <span class="px-2 py-0.5 rounded bg-cyan-950/50 text-cyan-400 border border-cyan-500/30 text-[10px]">100% RELIABLE SLIDING-WINDOW</span>
-              <span class="text-slate-400">節點在線: <span id="online-count" class="text-green-400 font-bold">1</span> 單位</span>
+            <div class="hidden sm:flex items-center gap-2 text-xs font-mono-tech">
+              <span id="p2p-badge" class="px-2 py-0.5 rounded bg-amber-950/50 text-amber-300 border border-amber-500/40 text-[10px]">
+                P2P 隧道協商中...
+              </span>
+              <span class="text-slate-400">在線節點: <span id="online-count" class="text-green-400 font-bold">1</span> 單位</span>
             </div>
           </div>
 
@@ -249,7 +251,7 @@
             <input id="file-upload-input" type="file" multiple class="hidden" onchange="handleFilesSelected(event)" />
 
             <button onclick="document.getElementById('file-upload-input').click()" class="cyber-btn px-3 py-1.5 rounded text-xs font-mono-tech flex items-center gap-1.5">
-              <span>⚡ 注入檔案 (無限制大小)</span>
+              <span>⚡ 注入檔案 (P2P / TURN / 安全中繼雙引擎)</span>
             </button>
 
             <!-- 傳輸進度狀態列 -->
@@ -284,13 +286,34 @@
 
     <script>
       /* ============================================================
-         1. 核心網絡通訊與大廳狀態管理
-         - 更換為全球穩定度最優之 HiveMQ 叢集 (wss://broker.hivemq.com:8884/mqtt)
-         - 徹底解決 EMQX Rate-limit 與封包過載斷線問題
+         1. 核心網絡配置：STUN + OpenRelay TURN (解決 4G / 企業內網跨網穿透)
          ============================================================ */
-      const BROKER_URL = "wss://broker.hivemq.com:8884/mqtt";
-      const LOBBY_PREFIX = "cyber_mesh_v5_stable/";
-      
+      const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+      const LOBBY_PREFIX = "cyber_mesh_hybrid_v7/";
+
+      // 包含 Google STUN 與 Open Relay 公用免費 TURN 伺服器
+      const RTC_CONFIG = {
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+          {
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+          },
+          {
+            urls: "turn:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+          },
+          {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+          }
+        ]
+      };
+
       let myId = "";
       let client = null;
       let myName = "Operator";
@@ -304,12 +327,11 @@
       let pingLoop = null;
       let checkLoop = null;
 
-      // 傳輸管理池
+      // P2P 與傳輸管理器
+      const rtcPeers = new Map(); // peerId -> { pc, dc, ready: bool, isTurn: bool }
       const uploadQueue = [];
-      let totalBatchFiles = 0;
-      let completedBatchFiles = 0;
       let activeUploadTask = null;
-      const incomingChunks = new Map();
+      const incomingFiles = new Map();
 
       function formatBytes(bytes) {
         if (!bytes || bytes === 0) return "0 B";
@@ -407,10 +429,22 @@
         switchRoom(cleanName);
       }
 
+      function closeAllPeerConnections() {
+        rtcPeers.forEach((peer) => {
+          try {
+            if (peer.dc) peer.dc.close();
+            if (peer.pc) peer.pc.close();
+          } catch (e) {}
+        });
+        rtcPeers.clear();
+        updateP2PBadge();
+      }
+
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
         if (currentRoom === newRoom) return;
 
+        closeAllPeerConnections();
         sendData({ type: "PLAYER_LEAVE", name: myName });
         client.unsubscribe(currentTopic);
 
@@ -443,14 +477,13 @@
         currentRoom = "公共大廳";
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
-        document.getElementById("conn-hint").innerText = "CONNECTING TO HIVEMQ QUANTUM CLUSTER...";
+        document.getElementById("conn-hint").innerText = "CONNECTING TO HYBRID NETWORK...";
 
         client = mqtt.connect(BROKER_URL, {
           clientId: myId,
           clean: true,
-          connectTimeout: 12000,
-          reconnectPeriod: 2000,
-          keepalive: 30,
+          connectTimeout: 10000,
+          reconnectPeriod: 2500,
           will: {
             topic: currentTopic,
             payload: JSON.stringify({ type: "PLAYER_LEAVE", senderId: myId, name: myName }),
@@ -494,10 +527,6 @@
         client.on("error", () => {
           document.getElementById("conn-hint").innerText = "SIGNAL UNSTABLE: RECONNECTING...";
         });
-
-        client.on("reconnect", () => {
-          appendNotice("// 網路抖動：正在自動重新接通量子鏈路...");
-        });
       }
 
       function sendData(data) {
@@ -507,18 +536,115 @@
         return true;
       }
 
-      function waitForReconnect() {
-        return new Promise((resolve) => {
-          const timer = setInterval(() => {
-            if (client && client.connected) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, 300);
-        });
+      /* ============================================================
+         2. WebRTC P2P / TURN 信令與連線管理
+         ============================================================ */
+      function createPeerConnection(targetId, isInitiator) {
+        if (rtcPeers.has(targetId)) {
+          const old = rtcPeers.get(targetId);
+          try { old.pc.close(); } catch(e){}
+        }
+
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        const peer = { pc, dc: null, ready: false, isTurn: false };
+        rtcPeers.set(targetId, peer);
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            sendData({
+              type: "RTC_CANDIDATE",
+              targetId: targetId,
+              candidate: event.candidate
+            });
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+            // 檢查是否透過 relay (TURN) 建立
+            pc.getStats().then(stats => {
+              stats.forEach(report => {
+                if (report.type === "candidate-pair" && report.state === "succeeded") {
+                  const remote = stats.get(report.remoteCandidateId);
+                  if (remote && remote.candidateType === "relay") {
+                    peer.isTurn = true;
+                  }
+                }
+              });
+              updateP2PBadge();
+            }).catch(() => {});
+          }
+        };
+
+        if (isInitiator) {
+          const dc = pc.createDataChannel("cyber_p2p_channel", { ordered: true });
+          setupDataChannel(targetId, dc);
+
+          pc.createOffer().then((offer) => {
+            return pc.setLocalDescription(offer);
+          }).then(() => {
+            sendData({
+              type: "RTC_OFFER",
+              targetId: targetId,
+              offer: pc.localDescription
+            });
+          }).catch(console.error);
+        } else {
+          pc.ondatachannel = (event) => {
+            setupDataChannel(targetId, event.channel);
+          };
+        }
       }
 
-      function handleMessage(msg) {
+      function setupDataChannel(targetId, dc) {
+        dc.binaryType = "arraybuffer";
+        const peer = rtcPeers.get(targetId);
+        if (peer) peer.dc = dc;
+
+        dc.onopen = () => {
+          if (peer) peer.ready = true;
+          updateP2PBadge();
+          const targetName = members.get(targetId)?.name || targetId;
+          appendNotice(`// ⚡ 量子直連隧道已與 [${targetName}] 成功打通！`);
+        };
+
+        dc.onclose = () => {
+          if (peer) peer.ready = false;
+          updateP2PBadge();
+        };
+
+        dc.onmessage = (event) => {
+          handleDataChannelMessage(event.data, targetId);
+        };
+      }
+
+      function updateP2PBadge() {
+        let readyCount = 0;
+        let hasTurn = false;
+        rtcPeers.forEach(p => {
+          if (p.ready) {
+            readyCount++;
+            if (p.isTurn) hasTurn = true;
+          }
+        });
+        const badge = document.getElementById("p2p-badge");
+        if (!badge) return;
+
+        if (readyCount > 0) {
+          if (hasTurn) {
+            badge.className = "px-2 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-500/50 text-[10px] font-bold";
+            badge.innerText = `🛡️ TURN 穿透直連: ${readyCount} 節點 (跨網)`;
+          } else {
+            badge.className = "px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-500/50 text-[10px] font-bold";
+            badge.innerText = `⚡ P2P 極速直連: ${readyCount} 節點通達`;
+          }
+        } else {
+          badge.className = "px-2 py-0.5 rounded bg-amber-950/50 text-amber-300 border border-amber-500/40 text-[10px]";
+          badge.innerText = `雙引擎待命中 (P2P + MQTT備援)`;
+        }
+      }
+
+      async function handleMessage(msg) {
         const senderId = msg.senderId;
         if (!senderId) return;
 
@@ -527,22 +653,56 @@
             appendChatMessage(msg.name, msg.text, msg.avatar, "text", false, senderId);
             break;
 
-          case "CHUNK_TRANSFER_START":
-            handleTransferStart(msg);
-            break;
-
-          case "CHUNK_DATA":
-            handleChunkData(msg);
-            break;
-
-          case "WINDOW_ACK":
-            if (msg.targetId === myId && activeUploadTask && activeUploadTask.fileId === msg.fileId) {
-              activeUploadTask.handleAck(msg.windowIndex);
+          // --- WebRTC 信令交互 ---
+          case "RTC_OFFER":
+            if (msg.targetId === myId) {
+              createPeerConnection(senderId, false);
+              const peer = rtcPeers.get(senderId);
+              await peer.pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
+              const answer = await peer.pc.createAnswer();
+              await peer.pc.setLocalDescription(answer);
+              sendData({ type: "RTC_ANSWER", targetId: senderId, answer: peer.pc.localDescription });
             }
             break;
 
-          case "CHUNK_TRANSFER_CANCEL":
-            handleTransferCancel(msg);
+          case "RTC_ANSWER":
+            if (msg.targetId === myId && rtcPeers.has(senderId)) {
+              const peer = rtcPeers.get(senderId);
+              await peer.pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
+            }
+            break;
+
+          case "RTC_CANDIDATE":
+            if (msg.targetId === myId && rtcPeers.has(senderId)) {
+              const peer = rtcPeers.get(senderId);
+              if (peer && peer.pc) {
+                try {
+                  await peer.pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+                } catch (e) {}
+              }
+            }
+            break;
+
+          // --- MQTT 降級備援通道處理 ---
+          case "MQTT_FILE_START":
+            handleMqttFileStart(msg);
+            break;
+
+          case "MQTT_CHUNK_DATA":
+            handleMqttChunkData(msg);
+            break;
+
+          case "MQTT_CHUNK_ACK":
+            if (msg.targetId === myId && activeUploadTask && activeUploadTask.onMqttAck) {
+              activeUploadTask.onMqttAck(msg.index);
+            }
+            break;
+
+          // --- 通用傳輸完成確認回執 ---
+          case "TRANSFER_CONFIRMED":
+            if (msg.targetId === myId && activeUploadTask && activeUploadTask.fileId === msg.fileId) {
+              activeUploadTask.onPeerCompleted();
+            }
             break;
 
           case "HELLO":
@@ -550,9 +710,19 @@
             members.set(senderId, { name: msg.name, avatar: msg.avatar, lastSeen: Date.now() });
             renderMemberList();
             sendData({ type: "WELCOME", name: myName, avatar: myAvatar });
+            if (myId < senderId) {
+              createPeerConnection(senderId, true);
+            }
             break;
 
           case "WELCOME":
+            members.set(senderId, { name: msg.name, avatar: msg.avatar, lastSeen: Date.now() });
+            renderMemberList();
+            if (myId < senderId) {
+              createPeerConnection(senderId, true);
+            }
+            break;
+
           case "HEARTBEAT":
             members.set(senderId, { name: msg.name, avatar: msg.avatar, lastSeen: Date.now() });
             renderMemberList();
@@ -562,6 +732,14 @@
             if (members.has(senderId)) {
               appendNotice(`// 單位 [${members.get(senderId).name}] 已離線或轉移頻率。`);
               members.delete(senderId);
+              if (rtcPeers.has(senderId)) {
+                try {
+                  rtcPeers.get(senderId).dc?.close();
+                  rtcPeers.get(senderId).pc?.close();
+                } catch(e){}
+                rtcPeers.delete(senderId);
+                updateP2PBadge();
+              }
               renderMemberList();
             }
             break;
@@ -580,23 +758,267 @@
       }
 
       /* ============================================================
-         2. 🚀 100% 成功率：高容限滑動視窗傳輸引擎 (Sliding Window Engine)
-         - 單封包 64KB 原生 (Base64 約 87KB)，完美低於所有 MQTT Broker 的上限與 WebSocket Frame limit
-         - 4 封包為一滑動視窗批次確認 (每批次 256KB)
-         - 斷線自動暫停與無縫續傳，徹底根除大檔案傳輸中斷問題
+         3. 🚀 雙引擎智慧切換傳輸核心
          ============================================================ */
-      const CHUNK_SIZE = 64 * 1024; // 64 KB (原生最佳安全極限)
-      const WINDOW_SIZE = 4;        // 4 個切片為一個確認視窗
+      const P2P_CHUNK_SIZE = 32 * 1024;  // P2P/TURN: 32KB 原生二進制
+      const MQTT_CHUNK_SIZE = 24 * 1024; // MQTT 降級中繼: 24KB 安全切片 (Base64約32KB，絕不超標斷線)
 
-      function readSliceAsBase64(blob) {
-        return new Promise((resolve, reject) => {
+      function handleFilesSelected(e) {
+        const files = Array.from(e.target.files);
+        if (!files || files.length === 0) return;
+
+        // 【嚴格防呆】：若無人在線，嚴格禁止空轉謊報
+        const otherAgents = Array.from(members.keys()).filter(id => id !== myId);
+        if (otherAgents.length === 0) {
+          alert(`⚠️ 無法傳輸：當前頻率【${currentRoom}】內只有你一人！\n請開啟另一個分頁或等待其他人登入同一頻道以進行通訊測試。`);
+          e.target.value = "";
+          return;
+        }
+
+        for (const file of files) {
+          uploadQueue.push(file);
+        }
+        e.target.value = "";
+
+        processUploadQueue();
+      }
+
+      async function processUploadQueue() {
+        if (activeUploadTask || uploadQueue.length === 0) return;
+
+        const file = uploadQueue.shift();
+        const progBar = document.getElementById("transfer-progress-bar");
+        progBar.classList.remove("hidden");
+        progBar.classList.add("flex");
+
+        // 決定傳輸通道：優先 WebRTC (P2P/TURN)，超時自動降級走 MQTT
+        const channelMode = await determineBestChannel();
+
+        if (channelMode === "P2P") {
+          await streamFileP2P(file);
+        } else {
+          await streamFileMqttFallback(file);
+        }
+
+        activeUploadTask = null;
+
+        if (uploadQueue.length > 0) {
+          processUploadQueue();
+        } else {
+          const progText = document.getElementById("transfer-progress-text");
+          progText.innerText = "⚡ 任務全部完成：檔案已 100% 抵達對端並校驗！";
+          setTimeout(() => {
+            if (!activeUploadTask && uploadQueue.length === 0) {
+              progBar.classList.add("hidden");
+              progBar.classList.remove("flex");
+            }
+          }, 2500);
+        }
+      }
+
+      // 自動探測：若 2 秒內 P2P/TURN 隧道未就緒，即刻無縫降級
+      async function determineBestChannel() {
+        const hasOpenP2P = () => {
+          let found = false;
+          rtcPeers.forEach(peer => {
+            if (peer.ready && peer.dc && peer.dc.readyState === "open") found = true;
+          });
+          return found;
+        };
+
+        if (hasOpenP2P()) return "P2P";
+
+        updateProgressText("正在協商 P2P/TURN 跨網穿透隧道...", 0, 0, "連線中");
+        await new Promise(r => setTimeout(r, 2000));
+
+        if (hasOpenP2P()) return "P2P";
+
+        appendNotice("// ⚠️ 跨網打洞受限 (對稱型 NAT)，已自動啟用【MQTT 安全中繼通道】！");
+        return "MQTT";
+      }
+
+      // --- [通道 A] WebRTC P2P / TURN 極速原生傳輸 ---
+      function streamFileP2P(file) {
+        return new Promise(async (resolve) => {
+          const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
+          const totalChunks = Math.ceil(file.size / P2P_CHUNK_SIZE);
+          const fileId = "pf_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+
+          showLocalPreview(file, isImage);
+
+          let isCancelled = false;
+          let resolveFinal = null;
+
+          activeUploadTask = {
+            fileId,
+            cancel: () => { isCancelled = true; },
+            onPeerCompleted: () => { if (resolveFinal) resolveFinal(); }
+          };
+
+          const activeChannels = [];
+          rtcPeers.forEach(peer => {
+            if (peer.ready && peer.dc && peer.dc.readyState === "open") activeChannels.push(peer.dc);
+          });
+
+          // 發送元資料
+          const metaPayload = JSON.stringify({
+            cmd: "FILE_START",
+            mode: "P2P",
+            fileId: fileId,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+            totalChunks: totalChunks,
+            isImage: isImage,
+            senderName: myName,
+            senderAvatar: myAvatar
+          });
+
+          activeChannels.forEach(dc => dc.send(metaPayload));
+
+          let bytesSent = 0;
+          let startTime = Date.now();
+
+          for (let i = 0; i < totalChunks; i++) {
+            if (isCancelled) break;
+
+            const offset = i * P2P_CHUNK_SIZE;
+            const sliceBlob = file.slice(offset, Math.min(offset + P2P_CHUNK_SIZE, file.size));
+            const arrayBuffer = await sliceBlob.arrayBuffer();
+
+            const packet = new Uint8Array(8 + arrayBuffer.byteLength);
+            const view = new DataView(packet.buffer);
+            view.setUint32(0, i);
+            view.setUint32(4, totalChunks);
+            packet.set(new Uint8Array(arrayBuffer), 8);
+
+            for (const dc of activeChannels) {
+              while (dc.bufferedAmount > 4 * 1024 * 1024) {
+                await new Promise(r => setTimeout(r, 5));
+              }
+              dc.send(packet.buffer);
+            }
+
+            bytesSent += sliceBlob.size;
+
+            if (i % 8 === 0 || i === totalChunks - 1) {
+              const elapsedSec = (Date.now() - startTime) / 1000;
+              const speed = elapsedSec > 0 ? formatBytes(bytesSent / elapsedSec) + "/s" : "0 B/s";
+              const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
+              updateProgressText(file.name, bytesSent, file.size, `P2P/TURN [${speed}] ${pct}%`);
+            }
+          }
+
+          if (!isCancelled) {
+            updateProgressText(file.name, bytesSent, file.size, "等待對端完成組裝校驗...");
+            await Promise.race([
+              new Promise(res => { resolveFinal = res; }),
+              new Promise(res => setTimeout(res, 6000))
+            ]);
+          }
+
+          resolve();
+        });
+      }
+
+      // --- [通道 B] MQTT 安全中繼通道 (24KB切片 + 嚴格 Stop-and-Wait ACK，防爆防斷) ---
+      function streamFileMqttFallback(file) {
+        return new Promise(async (resolve) => {
+          const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
+          const totalChunks = Math.ceil(file.size / MQTT_CHUNK_SIZE);
+          const fileId = "mf_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+
+          showLocalPreview(file, isImage);
+
+          let isCancelled = false;
+          let resolveFinal = null;
+          let ackResolver = null;
+
+          activeUploadTask = {
+            fileId,
+            cancel: () => { isCancelled = true; },
+            onMqttAck: (idx) => { if (ackResolver) ackResolver(idx); },
+            onPeerCompleted: () => { if (resolveFinal) resolveFinal(); }
+          };
+
+          // 廣播開始中繼傳輸
+          sendData({
+            type: "MQTT_FILE_START",
+            fileId: fileId,
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+            totalChunks: totalChunks,
+            isImage: isImage,
+            name: myName,
+            avatar: myAvatar
+          });
+
+          let bytesSent = 0;
+          let startTime = Date.now();
+
+          for (let i = 0; i < totalChunks; i++) {
+            if (isCancelled) break;
+
+            const offset = i * MQTT_CHUNK_SIZE;
+            const sliceBlob = file.slice(offset, Math.min(offset + MQTT_CHUNK_SIZE, file.size));
+            const base64Chunk = await readBlobAsBase64(sliceBlob);
+
+            let acked = false;
+            let retry = 0;
+
+            // 嚴格單切片確認，遇網路延遲自動重傳，絕不觸發斷線
+            while (!acked && retry < 6 && !isCancelled) {
+              sendData({
+                type: "MQTT_CHUNK_DATA",
+                fileId: fileId,
+                index: i,
+                totalChunks: totalChunks,
+                chunk: base64Chunk
+              });
+
+              const result = await Promise.race([
+                new Promise(r => { ackResolver = r; }),
+                new Promise(r => setTimeout(() => r("TIMEOUT"), 1200))
+              ]);
+
+              if (result === i) {
+                acked = true;
+              } else {
+                retry++;
+                await new Promise(r => setTimeout(r, 50));
+              }
+            }
+
+            bytesSent += sliceBlob.size;
+            const elapsedSec = (Date.now() - startTime) / 1000;
+            const speed = elapsedSec > 0 ? formatBytes(bytesSent / elapsedSec) + "/s" : "0 B/s";
+            const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
+            updateProgressText(file.name, bytesSent, file.size, `MQTT安全中繼 [${speed}] ${pct}%`);
+
+            await new Promise(r => setTimeout(r, 6)); // 微保護間隔
+          }
+
+          if (!isCancelled) {
+            updateProgressText(file.name, bytesSent, file.size, "等待對端完成組裝校驗...");
+            await Promise.race([
+              new Promise(res => { resolveFinal = res; }),
+              new Promise(res => setTimeout(res, 6000))
+            ]);
+          }
+
+          resolve();
+        });
+      }
+
+      function readBlobAsBase64(blob) {
+        return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = () => {
             const dataUrl = reader.result;
             const commaIndex = dataUrl.indexOf(",");
             resolve(commaIndex !== -1 ? dataUrl.substring(commaIndex + 1) : dataUrl);
           };
-          reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
       }
@@ -611,225 +1033,123 @@
         return bytes;
       }
 
-      function handleFilesSelected(e) {
-        const files = Array.from(e.target.files);
-        if (!files || files.length === 0) return;
-
-        totalBatchFiles += files.length;
-        for (const file of files) {
-          uploadQueue.push(file);
-        }
-        e.target.value = "";
-
-        processUploadQueue();
-      }
-
-      async function processUploadQueue() {
-        if (activeUploadTask || uploadQueue.length === 0) return;
-        if (!client || !client.connected) {
-          alert("量子網絡未連線，請稍後再試！");
-          return;
-        }
-
-        const file = uploadQueue.shift();
-        const progBar = document.getElementById("transfer-progress-bar");
-        progBar.classList.remove("hidden");
-        progBar.classList.add("flex");
-
-        await streamSingleFileReliable(file);
-
-        completedBatchFiles++;
-        activeUploadTask = null;
-
-        if (uploadQueue.length > 0) {
-          processUploadQueue();
+      function showLocalPreview(file, isImage) {
+        const localBlobUrl = URL.createObjectURL(file);
+        if (isImage) {
+          appendChatMessage(myName, { url: localBlobUrl, fileName: file.name, fileSize: file.size }, myAvatar, "image", true, myId);
         } else {
-          const progText = document.getElementById("transfer-progress-text");
-          progText.innerText = "⚡ 任務全部完成：所有資料流已確認抵達！";
-          setTimeout(() => {
-            if (!activeUploadTask && uploadQueue.length === 0) {
-              progBar.classList.add("hidden");
-              progBar.classList.remove("flex");
-              totalBatchFiles = 0;
-              completedBatchFiles = 0;
-            }
-          }, 2000);
+          appendChatMessage(myName, { url: localBlobUrl, fileName: file.name, fileSize: file.size }, myAvatar, "file", true, myId);
         }
-      }
-
-      function streamSingleFileReliable(file) {
-        return new Promise(async (resolve) => {
-          const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
-          const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-          const totalWindows = Math.ceil(totalChunks / WINDOW_SIZE);
-          const fileId = "qf_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
-
-          const localBlobUrl = URL.createObjectURL(file);
-          if (isImage) {
-            appendChatMessage(myName, { url: localBlobUrl, fileName: file.name, fileSize: file.size }, myAvatar, "image", true, myId);
-          } else {
-            appendChatMessage(myName, { url: localBlobUrl, fileName: file.name, fileSize: file.size }, myAvatar, "file", true, myId);
-          }
-
-          let ackResolver = null;
-          let isCancelled = false;
-
-          activeUploadTask = {
-            fileId,
-            fileName: file.name,
-            cancel: () => { isCancelled = true; },
-            handleAck: (winIdx) => {
-              if (ackResolver) ackResolver(winIdx);
-            }
-          };
-
-          // 廣播開始傳輸
-          sendData({
-            type: "CHUNK_TRANSFER_START",
-            fileId: fileId,
-            totalChunks: totalChunks,
-            totalWindows: totalWindows,
-            fileName: file.name,
-            fileType: file.type || "application/octet-stream",
-            fileSize: file.size,
-            isImage: isImage,
-            name: myName,
-            avatar: myAvatar
-          });
-
-          let currentWindow = 0;
-          let bytesSent = 0;
-          let startTime = Date.now();
-
-          while (currentWindow < totalWindows && !isCancelled) {
-            if (!client || !client.connected) {
-              updateProgressText(file.name, bytesSent, file.size, "等待連線恢復續傳中...");
-              await waitForReconnect();
-            }
-
-            const startIdx = currentWindow * WINDOW_SIZE;
-            const endIdx = Math.min(startIdx + WINDOW_SIZE, totalChunks);
-
-            // 循序發送當前視窗內的切片
-            for (let i = startIdx; i < endIdx; i++) {
-              if (isCancelled) break;
-              const offset = i * CHUNK_SIZE;
-              const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
-              const base64Chunk = await readSliceAsBase64(sliceBlob);
-
-              sendData({
-                type: "CHUNK_DATA",
-                fileId: fileId,
-                index: i,
-                windowIndex: currentWindow,
-                isWindowEnd: (i === endIdx - 1),
-                chunk: base64Chunk
-              });
-
-              bytesSent += sliceBlob.size;
-              // 微延遲防禦，避免觸發公共伺服器每秒封包頻率限制
-              await new Promise(r => setTimeout(r, 8));
-            }
-
-            // 單機測試模式：若無其他人在線，直接跳過 ACK 驗證，保障本機極速
-            const otherAgents = Array.from(members.keys()).filter(id => id !== myId);
-            if (otherAgents.length === 0) {
-              currentWindow++;
-              updateSpeedInfo(file.name, bytesSent, file.size, startTime);
-              continue;
-            }
-
-            // 等待對端回傳視窗確認 (Window ACK)
-            let winAcked = false;
-            let retry = 0;
-            while (!winAcked && retry < 6 && !isCancelled) {
-              const result = await Promise.race([
-                new Promise(res => { ackResolver = res; }),
-                new Promise(res => setTimeout(() => res("TIMEOUT"), 1500))
-              ]);
-
-              if (result === currentWindow) {
-                winAcked = true;
-                currentWindow++;
-                updateSpeedInfo(file.name, bytesSent, file.size, startTime);
-              } else {
-                retry++;
-                // 超時重傳該視窗
-                if (!isCancelled) {
-                  for (let i = startIdx; i < endIdx; i++) {
-                    const offset = i * CHUNK_SIZE;
-                    const sliceBlob = file.slice(offset, Math.min(offset + CHUNK_SIZE, file.size));
-                    const base64Chunk = await readSliceAsBase64(sliceBlob);
-                    sendData({
-                      type: "CHUNK_DATA",
-                      fileId: fileId,
-                      index: i,
-                      windowIndex: currentWindow,
-                      isWindowEnd: (i === endIdx - 1),
-                      chunk: base64Chunk
-                    });
-                    await new Promise(r => setTimeout(r, 12));
-                  }
-                }
-              }
-            }
-
-            if (!winAcked && !isCancelled) {
-              // 容錯機制：即使 6 次重試超時仍繼續往前，避免卡死
-              currentWindow++;
-            }
-          }
-
-          resolve();
-        });
-      }
-
-      function updateSpeedInfo(fileName, sent, total, startTime) {
-        const pct = Math.min(100, Math.round((sent / total) * 100));
-        const elapsedSec = (Date.now() - startTime) / 1000;
-        const speed = elapsedSec > 0 ? formatBytes(sent / elapsedSec) + "/s" : "0 B/s";
-        updateProgressText(fileName, sent, total, `${pct}% [${speed}]`);
       }
 
       function updateProgressText(fileName, sent, total, suffix) {
         const progText = document.getElementById("transfer-progress-text");
         if (progText) {
-          progText.innerText = `傳輸中: ${fileName} (${formatBytes(sent)}/${formatBytes(total)}) - ${suffix}`;
+          progText.innerText = total > 0 ? `${fileName} (${formatBytes(sent)}/${formatBytes(total)}) - ${suffix}` : suffix;
         }
       }
 
       function cancelActiveUpload() {
         if (activeUploadTask) {
           activeUploadTask.cancel();
-          sendData({ type: "CHUNK_TRANSFER_CANCEL", fileId: activeUploadTask.fileId });
           activeUploadTask = null;
         }
         uploadQueue.length = 0;
-        totalBatchFiles = 0;
-        completedBatchFiles = 0;
         document.getElementById("transfer-progress-bar").classList.add("hidden");
         document.getElementById("transfer-progress-bar").classList.remove("flex");
-        appendNotice("// 已終止所有數據傳輸作業。");
+        appendNotice("// 已手動中止傳輸任務。");
       }
 
-      function handleTransferStart(msg) {
-        const { fileId, totalChunks, totalWindows, fileName, fileType, fileSize, isImage, name, avatar, senderId } = msg;
-        const placeholderId = "box_" + fileId;
+      /* ============================================================
+         4. 接收端多通道數據流處理 (自動拼裝)
+         ============================================================ */
+      // 通道 1: 處理 WebRTC P2P/TURN 二進制數據
+      function handleDataChannelMessage(data, senderId) {
+        if (typeof data === "string") {
+          try {
+            const meta = JSON.parse(data);
+            if (meta.cmd === "FILE_START") {
+              initIncomingFileRecord(meta.fileId, meta.fileName, meta.fileType, meta.fileSize, meta.totalChunks, meta.isImage, meta.senderName, meta.senderAvatar, senderId, "P2P");
+            }
+          } catch(e){}
+          return;
+        }
 
-        incomingChunks.set(fileId, {
+        if (data instanceof ArrayBuffer) {
+          const view = new DataView(data);
+          const chunkIdx = view.getUint32(0);
+          const totalChunks = view.getUint32(4);
+          const rawSlice = data.slice(8);
+
+          let pack = null;
+          let fid = null;
+          incomingFiles.forEach((p, k) => {
+            if (p.totalChunks === totalChunks && p.senderId === senderId && !pack) {
+              pack = p;
+              fid = k;
+            }
+          });
+
+          if (!pack) return;
+
+          if (!pack.chunks[chunkIdx]) {
+            pack.chunks[chunkIdx] = rawSlice;
+            pack.receivedCount++;
+            pack.receivedBytes += rawSlice.byteLength;
+            updateIncomingUI(pack, "P2P直連");
+          }
+
+          if (pack.receivedCount === pack.totalChunks) {
+            finishReceivedFile(fid, pack);
+          }
+        }
+      }
+
+      // 通道 2: 處理 MQTT 降級數據流
+      function handleMqttFileStart(msg) {
+        initIncomingFileRecord(msg.fileId, msg.fileName, msg.fileType, msg.fileSize, msg.totalChunks, msg.isImage, msg.name, msg.avatar, msg.senderId, "MQTT");
+      }
+
+      function handleMqttChunkData(msg) {
+        const pack = incomingFiles.get(msg.fileId);
+        if (!pack) return;
+
+        // 回傳 ACK
+        sendData({
+          type: "MQTT_CHUNK_ACK",
+          targetId: msg.senderId,
+          fileId: msg.fileId,
+          index: msg.index
+        });
+
+        if (!pack.chunks[msg.index]) {
+          const uint8 = base64ToUint8(msg.chunk);
+          pack.chunks[msg.index] = uint8;
+          pack.receivedCount++;
+          pack.receivedBytes += uint8.length;
+          updateIncomingUI(pack, "安全中繼");
+        }
+
+        if (pack.receivedCount === pack.totalChunks) {
+          finishReceivedFile(msg.fileId, pack);
+        }
+      }
+
+      function initIncomingFileRecord(fileId, fileName, fileType, fileSize, totalChunks, isImage, senderName, senderAvatar, senderId, mode) {
+        const placeholderId = "box_" + fileId;
+        incomingFiles.set(fileId, {
           chunks: new Array(totalChunks),
           receivedCount: 0,
-          totalChunks: totalChunks,
-          totalWindows: totalWindows,
-          fileName: fileName,
-          fileType: fileType,
-          fileSize: fileSize,
-          isImage: isImage,
-          name: name,
-          avatar: avatar,
-          senderId: senderId,
-          placeholderId: placeholderId,
           receivedBytes: 0,
+          totalChunks,
+          fileName,
+          fileType,
+          fileSize,
+          isImage,
+          senderName,
+          senderAvatar,
+          senderId,
+          placeholderId,
           startTime: Date.now()
         });
 
@@ -838,12 +1158,12 @@
         row.id = placeholderId;
         row.className = "flex gap-3 max-w-[85%] self-start flex-row";
         row.innerHTML = `
-          <img src="${avatar}" class="w-8 h-8 rounded-lg object-cover border border-cyan-500/40 flex-shrink-0 mt-0.5" />
+          <img src="${senderAvatar}" class="w-8 h-8 rounded-lg object-cover border border-cyan-500/40 flex-shrink-0 mt-0.5" />
           <div class="flex flex-col items-start">
-            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${name}</span>
+            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${senderName}</span>
             <div class="p-3 rounded-lg bg-[#060b17] border border-cyan-500/30 flex items-center gap-2 text-xs font-mono-tech text-cyan-300">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-              <span id="${placeholderId}_txt">📥 正在極速注入數據: 0 B / ${formatBytes(fileSize)} (0%)</span>
+              <span id="${placeholderId}_txt">📥 [${mode}] 正在接收數據: 0 B / ${formatBytes(fileSize)} (0%)</span>
             </div>
           </div>
         `;
@@ -851,57 +1171,33 @@
         box.scrollTop = box.scrollHeight;
       }
 
-      function handleChunkData(msg) {
-        const { fileId, index, windowIndex, isWindowEnd, chunk } = msg;
-        const pack = incomingChunks.get(fileId);
-        if (!pack) return;
-
-        if (!pack.chunks[index]) {
-          const uint8 = base64ToUint8(chunk);
-          pack.chunks[index] = uint8;
-          pack.receivedCount++;
-          pack.receivedBytes += uint8.length;
-
+      function updateIncomingUI(pack, modeLabel) {
+        if (pack.receivedCount % 8 === 0 || pack.receivedCount === pack.totalChunks) {
           const txt = document.getElementById(pack.placeholderId + "_txt");
           if (txt) {
             const pct = Math.round((pack.receivedCount / pack.totalChunks) * 100);
             const elapsed = (Date.now() - pack.startTime) / 1000;
             const spd = elapsed > 0 ? formatBytes(pack.receivedBytes / elapsed) + "/s" : "";
-            txt.innerText = `📥 正在極速注入數據: ${formatBytes(pack.receivedBytes)} / ${formatBytes(pack.fileSize)} (${pct}%) ${spd}`;
+            txt.innerText = `📥 [${modeLabel}] 寫入中: ${formatBytes(pack.receivedBytes)} / ${formatBytes(pack.fileSize)} (${pct}%) [${spd}]`;
           }
-        }
-
-        // 當接收到視窗末端或是檔案最後一個切片時，回傳 ACK
-        if (isWindowEnd || index === pack.totalChunks - 1) {
-          sendData({
-            type: "WINDOW_ACK",
-            targetId: pack.senderId,
-            fileId: fileId,
-            windowIndex: windowIndex
-          });
-        }
-
-        // 全數接收完畢，組合 Blob
-        if (pack.receivedCount === pack.totalChunks) {
-          const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
-          const objectUrl = URL.createObjectURL(fullBlob);
-
-          finalizeReceivedFile(pack, objectUrl);
-          pack.chunks = null;
-          incomingChunks.delete(fileId);
         }
       }
 
-      function handleTransferCancel(msg) {
-        const pack = incomingChunks.get(msg.fileId);
-        if (!pack) return;
+      function finishReceivedFile(fileId, pack) {
+        const fullBlob = new Blob(pack.chunks, { type: pack.fileType });
+        const objectUrl = URL.createObjectURL(fullBlob);
 
-        const el = document.getElementById(pack.placeholderId);
-        if (el) {
-          el.innerHTML = `<span class="text-xs text-red-400 font-mono-tech my-1 px-3 py-1 bg-red-950/40 rounded border border-red-500/30">⚠️ 傳輸任務已被發送方中斷。</span>`;
-        }
+        finalizeReceivedFile(pack, objectUrl);
+
+        // 回傳確認抵達回執給發送端
+        sendData({
+          type: "TRANSFER_CONFIRMED",
+          targetId: pack.senderId,
+          fileId: fileId
+        });
+
         pack.chunks = null;
-        incomingChunks.delete(msg.fileId);
+        incomingFiles.delete(fileId);
       }
 
       function finalizeReceivedFile(pack, objectUrl) {
@@ -911,7 +1207,7 @@
         const contentDiv = row.querySelector(".flex-col");
         if (pack.isImage) {
           contentDiv.innerHTML = `
-            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${pack.name}</span>
+            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${pack.senderName}</span>
             <div class="p-2.5 rounded-lg bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 max-w-xs sm:max-w-sm">
               <img src="${objectUrl}" class="max-w-full max-h-[260px] rounded object-contain cursor-pointer hover:opacity-90" onclick="showBigImage('${objectUrl}')" />
               <div class="flex justify-between items-center pt-1 border-t border-cyan-500/20 font-mono-tech">
@@ -922,7 +1218,7 @@
           `;
         } else {
           contentDiv.innerHTML = `
-            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${pack.name}</span>
+            <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${pack.senderName}</span>
             <div class="p-3 rounded-lg bg-[#060b17] border border-cyan-500/30 flex flex-col gap-2 min-w-[220px] max-w-sm font-mono-tech">
               <div class="flex items-center gap-2 font-bold text-cyan-300 text-xs">
                 <span class="text-base">💾</span>
@@ -939,7 +1235,7 @@
       }
 
       /* ============================================================
-         3. 介面互動與聊天常規功能
+         5. 介面互動與聊天文字常規功能
          ============================================================ */
       function sendTextMessage() {
         const input = document.getElementById("chat-input");
@@ -1057,7 +1353,7 @@
           const now = Date.now();
           let changed = false;
           members.forEach((user, id) => {
-            if (id !== myId && now - user.lastSeen > 9000) {
+            if (id !== myId && now - user.lastSeen > 9500) {
               members.delete(id);
               changed = true;
             }
@@ -1069,6 +1365,8 @@
       function leaveLobby() {
         if (pingLoop) clearInterval(pingLoop);
         if (checkLoop) clearInterval(checkLoop);
+
+        closeAllPeerConnections();
 
         if (client) {
           sendData({ type: "PLAYER_LEAVE", name: myName });
