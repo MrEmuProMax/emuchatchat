@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CYBER COMM // 量子高速通訊網絡 (極速修復版)</title>
+    <title>CYBER COMM // 量子高速通訊網絡 (大廳紀錄保存版)</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -101,12 +101,12 @@
     <div id="login-panel" class="relative z-10 w-full max-w-md bg-[#0a0f1d]/95 glow-border rounded-xl p-7 shadow-2xl backdrop-blur-xl flex flex-col gap-5">
       <div class="text-center relative">
         <div class="inline-block px-3 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-mono-tech text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 mb-2">
-          High-Velocity Engine // v8.0 Turbo
+          Memory Vault Engine // v9.0 Active
         </div>
         <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
           CYBER COMM // LINK
         </h1>
-        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">P2P 極速直連 + 8 通道流水線備援</p>
+        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">P2P 直連 + 頻率歷史紀錄永久保存</p>
       </div>
 
       <!-- 自訂頭像選取區 -->
@@ -128,7 +128,7 @@
               隨機矩陣
             </button>
           </div>
-          <span class="text-[10px] text-slate-400 font-mono-tech">具備 Candidate 緩衝交握協議</span>
+          <span class="text-[10px] text-slate-400 font-mono-tech">跨大廳切換對話自動封存</span>
         </div>
       </div>
 
@@ -148,7 +148,7 @@
           </label>
           <input id="input-room" type="text" maxlength="15" value="公共大廳" readonly
             class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-lg font-mono-tech bg-slate-900/90 text-cyan-300 opacity-90 cursor-not-allowed border-dashed" />
-          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 提示：請在兩個分頁登入相同頻率進行極速傳輸。</span>
+          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 系統預設連入公共大廳，登入後可隨時自由新增自訂頻道。</span>
         </div>
 
         <button onclick="joinLobby()" class="cyber-btn-primary py-3 rounded-lg text-sm tracking-wider font-bold uppercase transition-all duration-300 mt-2 flex items-center justify-center gap-2">
@@ -180,7 +180,7 @@
           <div class="p-2">
             <div class="text-[10px] font-mono-tech text-slate-400 px-2 py-1.5 uppercase tracking-wider flex items-center justify-between">
               <span>網絡頻段節點</span>
-              <span id="room-count-badge" class="text-cyan-400">4 活躍</span>
+              <span id="room-count-badge" class="text-cyan-400">1 活躍</span>
             </div>
             <div id="room-list" class="flex flex-col gap-1 mt-1 overflow-y-auto max-h-[calc(100vh-270px)] pr-1"></div>
           </div>
@@ -286,10 +286,12 @@
 
     <script>
       /* ============================================================
-         1. 網絡配置：Cloudflare/Google 高速 STUN + OpenRelay TURN
+         1. 網絡配置與大廳狀態管理
+         - 依要求：預設僅保留「公共大廳」
+         - 新增大廳歷史聊天紀錄持久化緩存 (roomChatHistory)
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const LOBBY_PREFIX = "cyber_turbo_mesh_v8/";
+      const LOBBY_PREFIX = "cyber_turbo_mesh_v9/";
 
       const RTC_CONFIG = {
         iceServers: [
@@ -314,16 +316,20 @@
       let myName = "Operator";
       let myAvatar = "";
 
-      const availableRooms = ["公共大廳", "量子核心", "暗網終端", "戰術指揮中心"];
+      // 依要求：除了「公共大廳」以外的大廳全部刪掉
+      const availableRooms = ["公共大廳"];
       let currentRoom = "公共大廳";
       let currentTopic = "";
+
+      // 【核心】：各頻率聊天紀錄獨立記憶庫 (roomName -> DOM Nodes Array)
+      const roomChatHistory = new Map();
 
       const members = new Map();
       let pingLoop = null;
       let checkLoop = null;
 
       // WebRTC 節點與候選緩衝器
-      const rtcPeers = new Map(); // peerId -> { pc, dc, ready: bool, candidateQueue: [], remoteSet: bool }
+      const rtcPeers = new Map();
       const uploadQueue = [];
       let activeUploadTask = null;
       const incomingFiles = new Map();
@@ -435,26 +441,47 @@
         updateP2PBadge();
       }
 
+      /* ============================================================
+         2. 大廳切換核心機制 (100% 聊天紀錄永久保存)
+         ============================================================ */
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
         if (currentRoom === newRoom) return;
 
+        const scroller = document.getElementById("chat-scroller");
+
+        // 1. 【核心保存】：將當前大廳的所有訊息節點 (DOM 原生保存，包含檔案下載與圖片) 存入記憶庫
+        roomChatHistory.set(currentRoom, Array.from(scroller.children));
+
+        // 2. 斷開當前頻道連線與 P2P 隧道
         closeAllPeers();
         sendData({ type: "PLAYER_LEAVE", name: myName });
         client.unsubscribe(currentTopic);
 
+        // 3. 更新當前頻道名稱與主題
         currentRoom = newRoom;
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
+        // 4. 重置頻道在線成員
         members.clear();
         members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
-        document.getElementById("chat-scroller").innerHTML = "";
+
+        // 5. 【核心還原】：清空容器並無損恢復目標頻道的歷史紀錄
+        scroller.innerHTML = "";
+        if (roomChatHistory.has(currentRoom) && roomChatHistory.get(currentRoom).length > 0) {
+          const savedNodes = roomChatHistory.get(currentRoom);
+          savedNodes.forEach(node => scroller.appendChild(node));
+          appendNotice(`// 節點重導向完畢：已連回頻率 [${currentRoom}] (已恢復全部歷史紀錄)`);
+        } else {
+          appendNotice(`// 節點重導向完畢：已連入全新頻率 [${currentRoom}]`);
+        }
+
         document.getElementById("lobby-title").innerText = `CH: ${currentRoom}`;
         renderMemberList();
         renderRoomList();
+        scroller.scrollTop = scroller.scrollHeight;
 
-        appendNotice(`// 節點重導向完畢：已連入量子頻道 [${currentRoom}]`);
-
+        // 6. 訂閱新頻道並通知其他特工
         client.subscribe(currentTopic, { qos: 0 }, (err) => {
           if (!err) {
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
@@ -532,7 +559,7 @@
       }
 
       /* ============================================================
-         2. ⚡ WebRTC P2P 高速交握核心 (帶 Candidate 緩衝隊列)
+         3. ⚡ WebRTC P2P 高速交握核心 (帶 Candidate 緩衝隊列)
          ============================================================ */
       function getOrCreatePeer(targetId) {
         if (rtcPeers.has(targetId)) return rtcPeers.get(targetId);
@@ -565,7 +592,7 @@
       }
 
       function startP2POffer(targetId) {
-        if (myId >= targetId) return; // 避免兩端同時發起 Offer
+        if (myId >= targetId) return;
 
         const peer = getOrCreatePeer(targetId);
         if (peer.ready) return;
@@ -630,14 +657,12 @@
             appendChatMessage(msg.name, msg.text, msg.avatar, "text", false, senderId);
             break;
 
-          // --- WebRTC 信令 (嚴格保證候選順序，不再丟棄候選) ---
           case "RTC_OFFER":
             if (msg.targetId === myId) {
               const peer = getOrCreatePeer(senderId);
               await peer.pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
               peer.remoteSet = true;
 
-              // 釋放之前先收到的候選地址
               while (peer.candidateQueue.length > 0) {
                 const cand = peer.candidateQueue.shift();
                 try { await peer.pc.addIceCandidate(new RTCIceCandidate(cand)); } catch(e){}
@@ -655,7 +680,6 @@
               await peer.pc.setRemoteDescription(new RTCSessionDescription(msg.answer));
               peer.remoteSet = true;
 
-              // 釋放候選緩衝隊列
               while (peer.candidateQueue.length > 0) {
                 const cand = peer.candidateQueue.shift();
                 try { await peer.pc.addIceCandidate(new RTCIceCandidate(cand)); } catch(e){}
@@ -667,7 +691,6 @@
             if (msg.targetId === myId) {
               const peer = getOrCreatePeer(senderId);
               if (!peer.remoteSet) {
-                // Remote 尚未就緒時存入隊列，嚴禁拋棄
                 peer.candidateQueue.push(msg.candidate);
               } else {
                 try {
@@ -677,7 +700,6 @@
             }
             break;
 
-          // --- MQTT 8 通道流水線中繼消息 ---
           case "MQTT_FILE_START":
             handleMqttFileStart(msg);
             break;
@@ -747,11 +769,11 @@
       }
 
       /* ============================================================
-         3. 🚀 傳輸調度核心：P2P 極速直連 (優先) ＋ MQTT 8通道流水線 (備援)
+         4. 🚀 傳輸調度核心：P2P 極速直連 ＋ MQTT 8通道流水線
          ============================================================ */
-      const P2P_CHUNK_SIZE = 32 * 1024;  // P2P: 32KB 原生 ArrayBuffer 二進制
-      const MQTT_CHUNK_SIZE = 24 * 1024; // MQTT: 24KB 切片
-      const MQTT_WINDOW_SIZE = 8;        // MQTT: 8 封包流水線批發 (每批192KB，告別單片傻等)
+      const P2P_CHUNK_SIZE = 32 * 1024;
+      const MQTT_CHUNK_SIZE = 24 * 1024;
+      const MQTT_WINDOW_SIZE = 8;
 
       function handleFilesSelected(e) {
         const files = Array.from(e.target.files);
@@ -780,7 +802,6 @@
         progBar.classList.remove("hidden");
         progBar.classList.add("flex");
 
-        // 檢查 P2P 隧道，若未就緒等待 2.5 秒打洞
         let p2pChannel = getReadyP2PChannel();
         if (!p2pChannel) {
           updateProgressText(file.name, 0, file.size, "等待 P2P 直連打洞 (約 2 秒)...");
@@ -823,7 +844,6 @@
         return null;
       }
 
-      // --- [極速引擎] P2P / TURN 直連 (滿速 30MB/s ~ 80MB/s) ---
       function streamFileP2P(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -846,7 +866,6 @@
             if (peer.ready && peer.dc && peer.dc.readyState === "open") activeChannels.push(peer.dc);
           });
 
-          // 發送元資料
           const metaPayload = JSON.stringify({
             cmd: "FILE_START",
             mode: "P2P",
@@ -907,7 +926,6 @@
         });
       }
 
-      // --- [備援引擎] MQTT 8 通道流水線滑動視窗 (1 MB/s ~ 2.5 MB/s，不再卡死 26KB) ---
       function streamFileMqttPipelined(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -950,7 +968,6 @@
             const startIdx = w * MQTT_WINDOW_SIZE;
             const endIdx = Math.min(startIdx + MQTT_WINDOW_SIZE, totalChunks);
 
-            // 批次並行注入視窗切片 (不再一片一等)
             for (let i = startIdx; i < endIdx; i++) {
               if (isCancelled) break;
               const offset = i * MQTT_CHUNK_SIZE;
@@ -967,10 +984,9 @@
               });
 
               bytesSent += sliceBlob.size;
-              await new Promise(r => setTimeout(r, 4)); // 4ms 微間隔防止 Broker 阻斷
+              await new Promise(r => setTimeout(r, 4));
             }
 
-            // 等待該批次 8 切片視窗確認 (以整批確認替代單片確認)
             let winConfirmed = false;
             let retry = 0;
             while (!winConfirmed && retry < 5 && !isCancelled) {
@@ -983,7 +999,6 @@
                 winConfirmed = true;
               } else {
                 retry++;
-                // 重送該視窗
                 for (let i = startIdx; i < endIdx; i++) {
                   const offset = i * MQTT_CHUNK_SIZE;
                   const sliceBlob = file.slice(offset, Math.min(offset + MQTT_CHUNK_SIZE, file.size));
@@ -1069,7 +1084,7 @@
       }
 
       /* ============================================================
-         4. 接收端多通道數據流處理 (自動拼裝)
+         5. 接收端多通道數據流處理 (自動拼裝)
          ============================================================ */
       function handleDataChannelMessage(data, senderId) {
         if (typeof data === "string") {
@@ -1128,7 +1143,6 @@
           updateIncomingUI(pack, "MQTT流水線");
         }
 
-        // 遇到視窗末端或是最後一片時，回傳 Window ACK
         if (msg.isWindowEnd || msg.index === pack.totalChunks - 1) {
           sendData({
             type: "MQTT_WINDOW_ACK",
@@ -1242,7 +1256,7 @@
       }
 
       /* ============================================================
-         5. 介面互動與聊天文字常規功能
+         6. 介面互動與聊天文字常規功能
          ============================================================ */
       function sendTextMessage() {
         const input = document.getElementById("chat-input");
@@ -1382,6 +1396,7 @@
         }
 
         members.clear();
+        roomChatHistory.clear();
         uploadQueue.length = 0;
         document.getElementById("lobby-panel").classList.add("hidden");
         document.getElementById("login-panel").classList.remove("hidden");
