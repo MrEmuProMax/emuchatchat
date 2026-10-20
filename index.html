@@ -285,7 +285,7 @@
          1. 核心參數與大廳紀錄管理
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const LOBBY_PREFIX = "chat_turbo_v10/";
+      const LOBBY_PREFIX = "chat_turbo_v11/";
 
       const RTC_CONFIG = {
         iceServers: [
@@ -314,9 +314,7 @@
       let currentRoom = "公共大廳";
       let currentTopic = "";
 
-      // 聊天紀錄儲存庫 (跨房間保留)
       const roomChatHistory = new Map();
-
       const members = new Map();
       let pingLoop = null;
       let checkLoop = null;
@@ -326,7 +324,6 @@
       let activeUploadTask = null;
       const incomingFiles = new Map();
 
-      // 計算傳輸速度文字格式：X.XMB/S
       function calcSpeedMB(bytes, startTime) {
         const sec = (Date.now() - startTime) / 1000;
         if (sec <= 0) return "0.0MB/S";
@@ -441,31 +438,23 @@
         updateP2PBadge();
       }
 
-      /* ============================================================
-         2. 聊天室切換（保留所有歷史訊息）
-         ============================================================ */
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
         if (currentRoom === newRoom) return;
 
         const scroller = document.getElementById("chat-scroller");
-
-        // 1. 保存當前房間的聊天紀錄
         roomChatHistory.set(currentRoom, Array.from(scroller.children));
 
-        // 2. 斷開連線
         closeAllPeers();
         sendData({ type: "PLAYER_LEAVE", name: myName });
         client.unsubscribe(currentTopic);
 
-        // 3. 切換房間
         currentRoom = newRoom;
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
         members.clear();
         members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
 
-        // 4. 載入目標房間的聊天紀錄
         scroller.innerHTML = "";
         if (roomChatHistory.has(currentRoom) && roomChatHistory.get(currentRoom).length > 0) {
           const savedNodes = roomChatHistory.get(currentRoom);
@@ -557,7 +546,7 @@
       }
 
       /* ============================================================
-         3. 直連通道處理
+         3. 直連通道處理 (開啟無阻塞傳輸 ordered: false)
          ============================================================ */
       function getOrCreatePeer(targetId) {
         if (rtcPeers.has(targetId)) return rtcPeers.get(targetId);
@@ -595,7 +584,8 @@
         const peer = getOrCreatePeer(targetId);
         if (peer.ready) return;
 
-        const dc = peer.pc.createDataChannel("cyber_data", { ordered: true });
+        // 【核心優化】：ordered: false 解除 SCTP 隊頭排隊卡頓
+        const dc = peer.pc.createDataChannel("cyber_data", { ordered: false });
         setupDataChannel(targetId, dc);
 
         peer.pc.createOffer().then(offer => {
@@ -611,6 +601,9 @@
 
       function setupDataChannel(targetId, dc) {
         dc.binaryType = "arraybuffer";
+        // 設置 1MB 門檻，觸發 onbufferedamountlow
+        dc.bufferedAmountLowThreshold = 1024 * 1024;
+
         const peer = getOrCreatePeer(targetId);
         peer.dc = dc;
 
@@ -767,10 +760,10 @@
       }
 
       /* ============================================================
-         4. 檔案傳輸引擎：256KB 大封包 (能多大就多大)
+         4. 極速檔案傳輸 (64KB 黃金吞吐量 + 0ms 事件流控)
          ============================================================ */
-      // 瀏覽器 DataChannel 單一封包安全極限：256 KB (262,144 bytes)
-      const P2P_CHUNK_SIZE = 262144 - 8; // 扣除 8 bytes 標頭，封包總長度剛好 256KB
+      // 64KB (65536 - 8 bytes header = 65528 bytes): 瀏覽器最快最平順的實測吞吐尺寸
+      const P2P_CHUNK_SIZE = 65536 - 8;
       const MQTT_CHUNK_SIZE = 24 * 1024;
       const MQTT_WINDOW_SIZE = 8;
 
@@ -842,7 +835,7 @@
         return null;
       }
 
-      // 直連極速傳輸 (256KB 大封包)
+      // 【極速 P2P】：0ms onbufferedamountlow 硬件回調，移除 setTimeout 阻塞
       function streamFileP2P(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -896,18 +889,25 @@
             packet.set(new Uint8Array(arrayBuffer), 8);
 
             for (const dc of activeChannels) {
-              while (dc.bufferedAmount > 8 * 1024 * 1024) {
-                await new Promise(r => setTimeout(r, 4));
+              // 超出 3MB 緩衝時，等待網卡硬件排水事件，0 延遲無縫喚醒
+              if (dc.bufferedAmount > 3 * 1024 * 1024) {
+                await new Promise((res) => {
+                  dc.onbufferedamountlow = () => {
+                    dc.onbufferedamountlow = null;
+                    res();
+                  };
+                });
               }
               dc.send(packet.buffer);
             }
 
             bytesSent += sliceBlob.size;
 
-            // 依要求：上傳只留下 上傳中:67%(4.9MB/S)
-            const speed = calcSpeedMB(bytesSent, startTime);
-            const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
-            document.getElementById("transfer-progress-text").innerText = `上傳中:${pct}%(${speed})`;
+            if (i % 8 === 0 || i === totalChunks - 1) {
+              const speed = calcSpeedMB(bytesSent, startTime);
+              const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
+              document.getElementById("transfer-progress-text").innerText = `上傳中:${pct}%(${speed})`;
+            }
           }
 
           if (!isCancelled) {
@@ -921,7 +921,6 @@
         });
       }
 
-      // 備用傳輸模式
       function streamFileMqttPipelined(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -1012,7 +1011,6 @@
               }
             }
 
-            // 依要求：上傳只留下 上傳中:67%(4.9MB/S)
             const speed = calcSpeedMB(bytesSent, startTime);
             const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
             document.getElementById("transfer-progress-text").innerText = `上傳中:${pct}%(${speed})`;
@@ -1181,9 +1179,8 @@
         box.scrollTop = box.scrollHeight;
       }
 
-      // 依要求：接收只留下 接收中:67%(4.9MB/S)
       function updateIncomingUI(pack) {
-        if (pack.receivedCount % 4 === 0 || pack.receivedCount === pack.totalChunks) {
+        if (pack.receivedCount % 8 === 0 || pack.receivedCount === pack.totalChunks) {
           const txt = document.getElementById(pack.placeholderId + "_txt");
           if (txt) {
             const pct = Math.round((pack.receivedCount / pack.totalChunks) * 100);
@@ -1316,7 +1313,7 @@
               </div>
               <div class="text-[10px] text-slate-400">大小: ${formatBytes(fileSize)}</div>
               <div class="flex justify-end pt-1 border-t border-cyan-500/20">
-                <a href="${url}" download="${fileName}" class="cyber-btn w-full text-center py-1.5 text-[10px] rounded">下載檔案</a>
+                <a href="${url}" download="${fileName}" class="cyber-btn w-full text-center py-1.5 text-[11px] rounded">下載檔案</a>
               </div>
             </div>
           `;
