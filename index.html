@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CYBER COMM // 量子高速通訊網絡 (大廳紀錄保存版)</title>
+    <title>即時聊天室 // 極速傳檔</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- MQTT.js 通訊庫 -->
+    <!-- 通訊庫 -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <!-- Google 科技風格字型 -->
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -16,7 +16,6 @@
       :root {
         --neon-cyan: #00f2fe;
         --neon-blue: #4facfe;
-        --neon-purple: #9d4edd;
         --dark-bg: #070a13;
       }
       body {
@@ -97,23 +96,20 @@
   </head>
   <body class="tech-grid-bg text-slate-100 flex items-center justify-center min-h-screen">
 
-    <!-- 1. 科技登入終端 -->
+    <!-- 1. 登入面板 -->
     <div id="login-panel" class="relative z-10 w-full max-w-md bg-[#0a0f1d]/95 glow-border rounded-xl p-7 shadow-2xl backdrop-blur-xl flex flex-col gap-5">
       <div class="text-center relative">
-        <div class="inline-block px-3 py-0.5 rounded-full text-[10px] uppercase tracking-widest font-mono-tech text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 mb-2">
-          Memory Vault Engine // v9.0 Active
-        </div>
         <h1 class="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
-          CYBER COMM // LINK
+          即時聊天室
         </h1>
-        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">P2P 直連 + 頻率歷史紀錄永久保存</p>
+        <p class="text-xs text-slate-400 font-mono-tech mt-1 tracking-wide">支援大檔案高速傳送</p>
       </div>
 
-      <!-- 自訂頭像選取區 -->
+      <!-- 頭像選取區 -->
       <div class="flex items-center gap-3.5 bg-[#050811]/90 border border-cyan-500/30 p-3 rounded-lg">
         <div class="relative group cursor-pointer w-14 h-14 rounded-lg bg-slate-900 border border-cyan-400/50 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-[0_0_10px_rgba(0,242,254,0.15)]" onclick="document.getElementById('avatar-file').click()">
           <img id="avatar-preview" src="" class="w-full h-full object-cover hidden" />
-          <span id="avatar-placeholder" class="text-[10px] text-cyan-400 font-mono-tech tracking-wider">AVATAR</span>
+          <span id="avatar-placeholder" class="text-[10px] text-cyan-400 font-mono-tech tracking-wider">頭像</span>
           <div class="absolute inset-0 bg-cyan-950/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <span class="text-[10px] text-cyan-300 font-mono-tech font-bold">上傳</span>
           </div>
@@ -122,82 +118,82 @@
         <div class="flex flex-col gap-1.5 flex-1">
           <div class="flex gap-2">
             <button type="button" onclick="document.getElementById('avatar-file').click()" class="cyber-btn px-2.5 py-1 text-[11px] rounded font-mono-tech">
-              自訂外觀
+              自選圖片
             </button>
             <button type="button" onclick="resetDefaultAvatar()" class="cyber-btn px-2.5 py-1 text-[11px] rounded font-mono-tech">
-              隨機矩陣
+              隨機頭像
             </button>
           </div>
-          <span class="text-[10px] text-slate-400 font-mono-tech">跨大廳切換對話自動封存</span>
+          <span class="text-[10px] text-slate-400 font-mono-tech">支援 JPG / PNG / GIF</span>
         </div>
       </div>
 
       <!-- 表單 -->
       <div class="flex flex-col gap-3.5">
         <div>
-          <label class="block text-xs font-mono-tech text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> 呼號 (CALLSIGN)
+          <label class="block text-xs font-mono-tech text-cyan-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> 你的暱稱
           </label>
-          <input id="input-username" type="text" maxlength="14" value="Operator-7" placeholder="輸入通訊呼號..."
+          <input id="input-username" type="text" maxlength="14" value="使用者-1" placeholder="請輸入暱稱..."
             class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-lg font-mono-tech tracking-wide" />
         </div>
 
         <div>
-          <label class="block text-xs font-mono-tech text-cyan-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span> 初始頻率 (CHANNEL)
+          <label class="block text-xs font-mono-tech text-cyan-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span> 預設聊天室
           </label>
           <input id="input-room" type="text" maxlength="15" value="公共大廳" readonly
             class="cyber-input w-full px-3.5 py-2.5 text-sm rounded-lg font-mono-tech bg-slate-900/90 text-cyan-300 opacity-90 cursor-not-allowed border-dashed" />
-          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 系統預設連入公共大廳，登入後可隨時自由新增自訂頻道。</span>
+          <span class="text-[10px] text-slate-500 font-mono-tech mt-1 block">※ 進入後可以自由新增其他聊天室。</span>
         </div>
 
         <button onclick="joinLobby()" class="cyber-btn-primary py-3 rounded-lg text-sm tracking-wider font-bold uppercase transition-all duration-300 mt-2 flex items-center justify-center gap-2">
-          <span>⚡ 初始化量子鏈接 (INITIALIZE LINK)</span>
+          <span>進入聊天室</span>
         </button>
 
         <div id="conn-hint" class="font-mono-tech text-[11px] text-center text-slate-400 tracking-wider">
-          STATUS: STANDBY
+          等待連線
         </div>
       </div>
     </div>
 
-    <!-- 2. 全屏科技大廳主工作站 -->
+    <!-- 2. 主聊天視窗 -->
     <div id="lobby-panel" class="relative z-20 hidden w-[98vw] h-[95vh] max-w-7xl bg-[#080d19]/95 glow-border rounded-xl shadow-2xl backdrop-blur-2xl flex overflow-hidden">
       
-      <!-- [左側欄] 大廳頻道切換與建立 -->
+      <!-- [左側欄] 聊天室切換與新增 -->
       <div class="w-64 bg-[#050811]/90 border-r border-cyan-500/20 flex flex-col justify-between flex-shrink-0">
         <div>
           <div class="p-3.5 border-b border-cyan-500/20 flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-sm bg-cyan-400 shadow-[0_0_8px_#00f2fe]"></span>
-              <span class="font-bold text-sm tracking-wider text-cyan-300 font-mono-tech">CYBER // CHANNELS</span>
+              <span class="font-bold text-sm tracking-wider text-cyan-300 font-mono-tech">聊天室列表</span>
             </div>
-            <button onclick="promptCreateRoom()" title="建立全新大廳" class="cyber-btn w-6 h-6 rounded flex items-center justify-center text-xs font-bold font-mono-tech">
+            <button onclick="promptCreateRoom()" title="新增聊天室" class="cyber-btn w-6 h-6 rounded flex items-center justify-center text-xs font-bold font-mono-tech">
               ＋
             </button>
           </div>
 
           <div class="p-2">
             <div class="text-[10px] font-mono-tech text-slate-400 px-2 py-1.5 uppercase tracking-wider flex items-center justify-between">
-              <span>網絡頻段節點</span>
-              <span id="room-count-badge" class="text-cyan-400">1 活躍</span>
+              <span>所有房間</span>
+              <span id="room-count-badge" class="text-cyan-400">1 間</span>
             </div>
             <div id="room-list" class="flex flex-col gap-1 mt-1 overflow-y-auto max-h-[calc(100vh-270px)] pr-1"></div>
           </div>
         </div>
 
-        <!-- 底部個人小卡 -->
+        <!-- 底部個人卡片 -->
         <div class="p-3 border-t border-cyan-500/20 bg-slate-950/60 flex items-center justify-between">
           <div class="flex items-center gap-2.5 overflow-hidden">
             <img id="my-profile-avatar" src="" class="w-8 h-8 rounded-lg object-cover border border-cyan-400/50 flex-shrink-0" />
             <div class="flex flex-col overflow-hidden">
-              <span id="my-profile-name" class="text-xs font-bold text-cyan-200 font-mono-tech truncate">Operator</span>
+              <span id="my-profile-name" class="text-xs font-bold text-cyan-200 font-mono-tech truncate">使用者</span>
               <span class="text-[9px] text-green-400 font-mono-tech flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span> 核心在線
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span> 在線
               </span>
             </div>
           </div>
-          <button onclick="leaveLobby()" title="斷開終端鏈接" class="cyber-btn p-1.5 rounded text-red-400 border-red-500/40 hover:border-red-400 hover:text-red-300">
+          <button onclick="leaveLobby()" title="登出" class="cyber-btn p-1.5 rounded text-red-400 border-red-500/40 hover:border-red-400 hover:text-red-300">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -213,22 +209,22 @@
           <div class="flex items-center gap-3">
             <div class="flex items-center gap-2 bg-[#050811] border border-cyan-500/40 px-3 py-1 rounded-md">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              <span id="lobby-title" class="font-mono-tech text-xs font-bold text-cyan-300 tracking-wider">CH: 公共大廳</span>
+              <span id="lobby-title" class="font-mono-tech text-xs font-bold text-cyan-300 tracking-wider">公共大廳</span>
             </div>
             <div class="hidden sm:flex items-center gap-2 text-xs font-mono-tech">
               <span id="p2p-badge" class="px-2.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
-                ⏳ 正在探測通道...
+                連線準備中
               </span>
-              <span class="text-slate-400">在線成員: <span id="online-count" class="text-green-400 font-bold">1</span> 單位</span>
+              <span class="text-slate-400">在線人數: <span id="online-count" class="text-green-400 font-bold">1</span> 人</span>
             </div>
           </div>
 
           <div class="flex items-center gap-3">
-            <span class="font-mono-tech text-[10px] text-slate-400">PING: <span id="ping-stat" class="text-green-400 font-bold">0ms</span></span>
+            <span class="font-mono-tech text-[10px] text-slate-400">延遲: <span id="ping-stat" class="text-green-400 font-bold">0ms</span></span>
           </div>
         </div>
 
-        <!-- 主體內容：聊天串 + 在線成員名單 -->
+        <!-- 主體內容：聊天串 + 在線名單 -->
         <div class="flex-1 flex overflow-hidden p-3 gap-3">
           <div class="flex-1 bg-[#050811]/70 border border-cyan-500/20 rounded-lg p-3 flex flex-col justify-between overflow-hidden">
             <div id="chat-scroller" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 text-sm"></div>
@@ -236,29 +232,29 @@
 
           <div class="w-56 bg-[#050811]/70 border border-cyan-500/20 rounded-lg p-3 flex flex-col flex-shrink-0">
             <div class="font-mono-tech text-[11px] text-cyan-400 mb-2 pb-1.5 border-b border-cyan-500/20 flex justify-between items-center tracking-wider">
-              <span>ACTIVE AGENTS</span>
+              <span>在線成員</span>
               <span class="text-green-400 text-[9px] flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> SYNC
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> 在線
               </span>
             </div>
             <div id="player-list" class="flex-1 overflow-y-auto flex flex-col gap-1.5"></div>
           </div>
         </div>
 
-        <!-- 底部通訊工具列 -->
+        <!-- 底部傳送工具列 -->
         <div class="p-3 border-t border-cyan-500/20 bg-slate-950/60 flex flex-col gap-2 flex-shrink-0">
           <div class="flex items-center gap-2">
             <input id="file-upload-input" type="file" multiple class="hidden" onchange="handleFilesSelected(event)" />
 
             <button onclick="document.getElementById('file-upload-input').click()" class="cyber-btn px-3 py-1.5 rounded text-xs font-mono-tech flex items-center gap-1.5">
-              <span>⚡ 注入超大檔案 (極速直連)</span>
+              <span>📁 傳送檔案</span>
             </button>
 
             <!-- 傳輸進度狀態列 -->
             <div id="transfer-progress-bar" class="hidden items-center gap-2 bg-[#050811] border border-cyan-500/40 px-3 py-1.5 rounded text-xs font-mono-tech text-cyan-300">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
               <span id="transfer-progress-text">準備傳輸中...</span>
-              <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-bold">中斷任務</button>
+              <button onclick="cancelActiveUpload()" class="ml-2 text-xs text-red-400 hover:text-red-300 underline font-bold">取消</button>
             </div>
           </div>
 
@@ -267,12 +263,12 @@
               id="chat-input"
               type="text"
               maxlength="300"
-              placeholder="輸入加密訊息... (Enter 發送)"
+              placeholder="輸入訊息... (Enter 發送)"
               onkeydown="if(event.key === 'Enter') sendTextMessage();"
               class="cyber-input flex-1 px-4 py-2 rounded-lg text-sm font-mono-tech tracking-wide"
             />
             <button onclick="sendTextMessage()" class="cyber-btn-primary px-6 py-2 rounded-lg text-xs font-mono-tech font-bold tracking-wider">
-              發送 (SEND)
+              發送
             </button>
           </div>
         </div>
@@ -286,12 +282,10 @@
 
     <script>
       /* ============================================================
-         1. 網絡配置與大廳狀態管理
-         - 依要求：預設僅保留「公共大廳」
-         - 新增大廳歷史聊天紀錄持久化緩存 (roomChatHistory)
+         1. 核心參數與大廳紀錄管理
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const LOBBY_PREFIX = "cyber_turbo_mesh_v9/";
+      const LOBBY_PREFIX = "chat_turbo_v10/";
 
       const RTC_CONFIG = {
         iceServers: [
@@ -313,26 +307,32 @@
 
       let myId = "";
       let client = null;
-      let myName = "Operator";
+      let myName = "使用者-1";
       let myAvatar = "";
 
-      // 依要求：除了「公共大廳」以外的大廳全部刪掉
       const availableRooms = ["公共大廳"];
       let currentRoom = "公共大廳";
       let currentTopic = "";
 
-      // 【核心】：各頻率聊天紀錄獨立記憶庫 (roomName -> DOM Nodes Array)
+      // 聊天紀錄儲存庫 (跨房間保留)
       const roomChatHistory = new Map();
 
       const members = new Map();
       let pingLoop = null;
       let checkLoop = null;
 
-      // WebRTC 節點與候選緩衝器
       const rtcPeers = new Map();
       const uploadQueue = [];
       let activeUploadTask = null;
       const incomingFiles = new Map();
+
+      // 計算傳輸速度文字格式：X.XMB/S
+      function calcSpeedMB(bytes, startTime) {
+        const sec = (Date.now() - startTime) / 1000;
+        if (sec <= 0) return "0.0MB/S";
+        const mb = bytes / (1024 * 1024);
+        return (mb / sec).toFixed(1) + "MB/S";
+      }
 
       function formatBytes(bytes) {
         if (!bytes || bytes === 0) return "0 B";
@@ -342,7 +342,7 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
       }
 
-      function makeDefaultAvatar(char = "O") {
+      function makeDefaultAvatar(char = "U") {
         const colors = ["#00f2fe", "#4facfe", "#9d4edd", "#05d5b3", "#ff007f"];
         const color = colors[Math.floor(Math.random() * colors.length)];
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
@@ -355,7 +355,7 @@
       }
 
       function resetDefaultAvatar() {
-        const name = document.getElementById("input-username").value.trim() || "O";
+        const name = document.getElementById("input-username").value.trim() || "U";
         myAvatar = makeDefaultAvatar(name);
         setAvatarImg(myAvatar);
       }
@@ -396,7 +396,7 @@
       function renderRoomList() {
         const container = document.getElementById("room-list");
         container.innerHTML = "";
-        document.getElementById("room-count-badge").innerText = `${availableRooms.length} 活躍`;
+        document.getElementById("room-count-badge").innerText = `${availableRooms.length} 間`;
 
         availableRooms.forEach(room => {
           const isActive = (room === currentRoom);
@@ -419,7 +419,7 @@
       }
 
       function promptCreateRoom() {
-        const name = prompt("請輸入欲創建的量子大廳名稱 (1~15字):", "");
+        const name = prompt("請輸入新聊天室名稱 (1~15字):", "");
         if (!name) return;
         const cleanName = name.trim();
         if (!cleanName) return;
@@ -442,7 +442,7 @@
       }
 
       /* ============================================================
-         2. 大廳切換核心機制 (100% 聊天紀錄永久保存)
+         2. 聊天室切換（保留所有歷史訊息）
          ============================================================ */
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
@@ -450,38 +450,36 @@
 
         const scroller = document.getElementById("chat-scroller");
 
-        // 1. 【核心保存】：將當前大廳的所有訊息節點 (DOM 原生保存，包含檔案下載與圖片) 存入記憶庫
+        // 1. 保存當前房間的聊天紀錄
         roomChatHistory.set(currentRoom, Array.from(scroller.children));
 
-        // 2. 斷開當前頻道連線與 P2P 隧道
+        // 2. 斷開連線
         closeAllPeers();
         sendData({ type: "PLAYER_LEAVE", name: myName });
         client.unsubscribe(currentTopic);
 
-        // 3. 更新當前頻道名稱與主題
+        // 3. 切換房間
         currentRoom = newRoom;
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
-        // 4. 重置頻道在線成員
         members.clear();
         members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
 
-        // 5. 【核心還原】：清空容器並無損恢復目標頻道的歷史紀錄
+        // 4. 載入目標房間的聊天紀錄
         scroller.innerHTML = "";
         if (roomChatHistory.has(currentRoom) && roomChatHistory.get(currentRoom).length > 0) {
           const savedNodes = roomChatHistory.get(currentRoom);
           savedNodes.forEach(node => scroller.appendChild(node));
-          appendNotice(`// 節點重導向完畢：已連回頻率 [${currentRoom}] (已恢復全部歷史紀錄)`);
+          appendNotice(`已切換至【${currentRoom}】`);
         } else {
-          appendNotice(`// 節點重導向完畢：已連入全新頻率 [${currentRoom}]`);
+          appendNotice(`已進入【${currentRoom}】`);
         }
 
-        document.getElementById("lobby-title").innerText = `CH: ${currentRoom}`;
+        document.getElementById("lobby-title").innerText = currentRoom;
         renderMemberList();
         renderRoomList();
         scroller.scrollTop = scroller.scrollHeight;
 
-        // 6. 訂閱新頻道並通知其他特工
         client.subscribe(currentTopic, { qos: 0 }, (err) => {
           if (!err) {
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
@@ -490,16 +488,16 @@
       }
 
       function joinLobby() {
-        myId = "op_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
+        myId = "u_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
 
         const nameInput = document.getElementById("input-username").value.trim();
-        myName = nameInput || "Operator-7";
+        myName = nameInput || "使用者-1";
         if (!myAvatar) myAvatar = makeDefaultAvatar(myName);
 
         currentRoom = "公共大廳";
         currentTopic = LOBBY_PREFIX + getSafeTopic(currentRoom);
 
-        document.getElementById("conn-hint").innerText = "CONNECTING TO NETWORK...";
+        document.getElementById("conn-hint").innerText = "連線中...";
 
         client = mqtt.connect(BROKER_URL, {
           clientId: myId,
@@ -516,14 +514,14 @@
         client.on("connect", () => {
           client.subscribe(currentTopic, { qos: 0 }, (err) => {
             if (err) {
-              alert("量子節點鏈接失敗！");
+              alert("連線失敗，請稍後重試");
               leaveLobby();
               return;
             }
 
             document.getElementById("login-panel").classList.add("hidden");
             document.getElementById("lobby-panel").classList.remove("hidden");
-            document.getElementById("lobby-title").innerText = `CH: ${currentRoom}`;
+            document.getElementById("lobby-title").innerText = currentRoom;
             document.getElementById("my-profile-name").innerText = myName;
             document.getElementById("my-profile-avatar").src = myAvatar;
 
@@ -531,7 +529,7 @@
             members.set(myId, { name: myName, avatar: myAvatar, lastSeen: Date.now() });
             renderMemberList();
 
-            appendNotice(`// 量子鏈接成功建立：接入頻率 [${currentRoom}]`);
+            appendNotice(`已加入【${currentRoom}】`);
 
             sendData({ type: "HELLO", name: myName, avatar: myAvatar });
             startHeartbeat();
@@ -547,7 +545,7 @@
         });
 
         client.on("error", () => {
-          document.getElementById("conn-hint").innerText = "SIGNAL UNSTABLE: RECONNECTING...";
+          document.getElementById("conn-hint").innerText = "連線不穩定，正在重試...";
         });
       }
 
@@ -559,7 +557,7 @@
       }
 
       /* ============================================================
-         3. ⚡ WebRTC P2P 高速交握核心 (帶 Candidate 緩衝隊列)
+         3. 直連通道處理
          ============================================================ */
       function getOrCreatePeer(targetId) {
         if (rtcPeers.has(targetId)) return rtcPeers.get(targetId);
@@ -597,7 +595,7 @@
         const peer = getOrCreatePeer(targetId);
         if (peer.ready) return;
 
-        const dc = peer.pc.createDataChannel("cyber_p2p_channel", { ordered: true });
+        const dc = peer.pc.createDataChannel("cyber_data", { ordered: true });
         setupDataChannel(targetId, dc);
 
         peer.pc.createOffer().then(offer => {
@@ -619,8 +617,8 @@
         dc.onopen = () => {
           peer.ready = true;
           updateP2PBadge();
-          const targetName = members.get(targetId)?.name || targetId;
-          appendNotice(`// ⚡ [P2P 極速直連通道已貫通] 與特工 [${targetName}] 達成直連！`);
+          const targetName = members.get(targetId)?.name || "對方";
+          appendNotice(`與 [${targetName}] 已建立高速直連`);
         };
 
         dc.onclose = () => {
@@ -641,10 +639,10 @@
 
         if (readyCount > 0) {
           badge.className = "px-2.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 text-[10px] font-bold";
-          badge.innerText = `⚡ P2P 極速直連: ${readyCount} 節點 (30~80MB/s)`;
+          badge.innerText = `高速直連 (${readyCount}人)`;
         } else {
           badge.className = "px-2.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/40 text-[10px]";
-          badge.innerText = `⏳ P2P 隧道協商中 (MQTT 備援就緒)`;
+          badge.innerText = `準備中`;
         }
       }
 
@@ -721,7 +719,7 @@
             break;
 
           case "HELLO":
-            appendNotice(`// 特工 [${msg.name}] 已接入頻道。`);
+            appendNotice(`[${msg.name}] 加入了聊天室`);
             members.set(senderId, { name: msg.name, avatar: msg.avatar, lastSeen: Date.now() });
             renderMemberList();
             sendData({ type: "WELCOME", name: myName, avatar: myAvatar });
@@ -741,7 +739,7 @@
 
           case "PLAYER_LEAVE":
             if (members.has(senderId)) {
-              appendNotice(`// 特工 [${members.get(senderId).name}] 已離線。`);
+              appendNotice(`[${members.get(senderId).name}] 離開了聊天室`);
               members.delete(senderId);
               if (rtcPeers.has(senderId)) {
                 try {
@@ -769,9 +767,10 @@
       }
 
       /* ============================================================
-         4. 🚀 傳輸調度核心：P2P 極速直連 ＋ MQTT 8通道流水線
+         4. 檔案傳輸引擎：256KB 大封包 (能多大就多大)
          ============================================================ */
-      const P2P_CHUNK_SIZE = 32 * 1024;
+      // 瀏覽器 DataChannel 單一封包安全極限：256 KB (262,144 bytes)
+      const P2P_CHUNK_SIZE = 262144 - 8; // 扣除 8 bytes 標頭，封包總長度剛好 256KB
       const MQTT_CHUNK_SIZE = 24 * 1024;
       const MQTT_WINDOW_SIZE = 8;
 
@@ -781,7 +780,7 @@
 
         const otherAgents = Array.from(members.keys()).filter(id => id !== myId);
         if (otherAgents.length === 0) {
-          alert(`⚠️ 無法傳輸：頻率【${currentRoom}】目前只有你一人！\n請打開另一個分頁進入相同頻道測試。`);
+          alert(`目前聊天室只有你一人，請等待其他人加入或在另一個分頁打開測試。`);
           e.target.value = "";
           return;
         }
@@ -804,9 +803,9 @@
 
         let p2pChannel = getReadyP2PChannel();
         if (!p2pChannel) {
-          updateProgressText(file.name, 0, file.size, "等待 P2P 直連打洞 (約 2 秒)...");
+          document.getElementById("transfer-progress-text").innerText = "連線建立中...";
           for (let i = 0; i < 5; i++) {
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 400));
             p2pChannel = getReadyP2PChannel();
             if (p2pChannel) break;
           }
@@ -815,7 +814,6 @@
         if (p2pChannel) {
           await streamFileP2P(file);
         } else {
-          appendNotice("// ⚠️ 跨網打洞受防火牆限制，已啟用【MQTT 8通道流水線中繼】！");
           await streamFileMqttPipelined(file);
         }
 
@@ -825,13 +823,13 @@
           processUploadQueue();
         } else {
           const progText = document.getElementById("transfer-progress-text");
-          progText.innerText = "⚡ 任務全部完成：檔案已 100% 抵達對端並校驗！";
+          progText.innerText = "傳輸完成";
           setTimeout(() => {
             if (!activeUploadTask && uploadQueue.length === 0) {
               progBar.classList.add("hidden");
               progBar.classList.remove("flex");
             }
-          }, 2500);
+          }, 1500);
         }
       }
 
@@ -844,11 +842,12 @@
         return null;
       }
 
+      // 直連極速傳輸 (256KB 大封包)
       function streamFileP2P(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
           const totalChunks = Math.ceil(file.size / P2P_CHUNK_SIZE);
-          const fileId = "pf_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+          const fileId = "f_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
 
           showLocalPreview(file, isImage);
 
@@ -868,7 +867,6 @@
 
           const metaPayload = JSON.stringify({
             cmd: "FILE_START",
-            mode: "P2P",
             fileId: fileId,
             fileName: file.name,
             fileType: file.type || "application/octet-stream",
@@ -898,7 +896,7 @@
             packet.set(new Uint8Array(arrayBuffer), 8);
 
             for (const dc of activeChannels) {
-              while (dc.bufferedAmount > 4 * 1024 * 1024) {
+              while (dc.bufferedAmount > 8 * 1024 * 1024) {
                 await new Promise(r => setTimeout(r, 4));
               }
               dc.send(packet.buffer);
@@ -906,16 +904,13 @@
 
             bytesSent += sliceBlob.size;
 
-            if (i % 16 === 0 || i === totalChunks - 1) {
-              const elapsedSec = (Date.now() - startTime) / 1000;
-              const speed = elapsedSec > 0 ? formatBytes(bytesSent / elapsedSec) + "/s" : "0 B/s";
-              const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
-              updateProgressText(file.name, bytesSent, file.size, `⚡ P2P直連 [${speed}] ${pct}%`);
-            }
+            // 依要求：上傳只留下 上傳中:67%(4.9MB/S)
+            const speed = calcSpeedMB(bytesSent, startTime);
+            const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
+            document.getElementById("transfer-progress-text").innerText = `上傳中:${pct}%(${speed})`;
           }
 
           if (!isCancelled) {
-            updateProgressText(file.name, bytesSent, file.size, "等待對端完成組裝校驗...");
             await Promise.race([
               new Promise(res => { resolveFinal = res; }),
               new Promise(res => setTimeout(res, 6000))
@@ -926,6 +921,7 @@
         });
       }
 
+      // 備用傳輸模式
       function streamFileMqttPipelined(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -1016,14 +1012,13 @@
               }
             }
 
-            const elapsedSec = (Date.now() - startTime) / 1000;
-            const speed = elapsedSec > 0 ? formatBytes(bytesSent / elapsedSec) + "/s" : "0 B/s";
+            // 依要求：上傳只留下 上傳中:67%(4.9MB/S)
+            const speed = calcSpeedMB(bytesSent, startTime);
             const pct = Math.min(100, Math.round((bytesSent / file.size) * 100));
-            updateProgressText(file.name, bytesSent, file.size, `🛡️ MQTT流水線 [${speed}] ${pct}%`);
+            document.getElementById("transfer-progress-text").innerText = `上傳中:${pct}%(${speed})`;
           }
 
           if (!isCancelled) {
-            updateProgressText(file.name, bytesSent, file.size, "等待對端完成組裝校驗...");
             await Promise.race([
               new Promise(res => { resolveFinal = res; }),
               new Promise(res => setTimeout(res, 6000))
@@ -1065,13 +1060,6 @@
         }
       }
 
-      function updateProgressText(fileName, sent, total, suffix) {
-        const progText = document.getElementById("transfer-progress-text");
-        if (progText) {
-          progText.innerText = total > 0 ? `${fileName} (${formatBytes(sent)}/${formatBytes(total)}) - ${suffix}` : suffix;
-        }
-      }
-
       function cancelActiveUpload() {
         if (activeUploadTask) {
           activeUploadTask.cancel();
@@ -1080,18 +1068,18 @@
         uploadQueue.length = 0;
         document.getElementById("transfer-progress-bar").classList.add("hidden");
         document.getElementById("transfer-progress-bar").classList.remove("flex");
-        appendNotice("// 已手動中止傳輸任務。");
+        appendNotice("已取消傳輸");
       }
 
       /* ============================================================
-         5. 接收端多通道數據流處理 (自動拼裝)
+         5. 接收端多通道處理
          ============================================================ */
       function handleDataChannelMessage(data, senderId) {
         if (typeof data === "string") {
           try {
             const meta = JSON.parse(data);
             if (meta.cmd === "FILE_START") {
-              initIncomingFileRecord(meta.fileId, meta.fileName, meta.fileType, meta.fileSize, meta.totalChunks, meta.isImage, meta.senderName, meta.senderAvatar, senderId, "P2P直連");
+              initIncomingFileRecord(meta.fileId, meta.fileName, meta.fileType, meta.fileSize, meta.totalChunks, meta.isImage, meta.senderName, meta.senderAvatar, senderId);
             }
           } catch(e){}
           return;
@@ -1118,7 +1106,7 @@
             pack.chunks[chunkIdx] = rawSlice;
             pack.receivedCount++;
             pack.receivedBytes += rawSlice.byteLength;
-            updateIncomingUI(pack, "P2P直連");
+            updateIncomingUI(pack);
           }
 
           if (pack.receivedCount === pack.totalChunks) {
@@ -1128,7 +1116,7 @@
       }
 
       function handleMqttFileStart(msg) {
-        initIncomingFileRecord(msg.fileId, msg.fileName, msg.fileType, msg.fileSize, msg.totalChunks, msg.isImage, msg.name, msg.avatar, msg.senderId, "MQTT流水線");
+        initIncomingFileRecord(msg.fileId, msg.fileName, msg.fileType, msg.fileSize, msg.totalChunks, msg.isImage, msg.name, msg.avatar, msg.senderId);
       }
 
       function handleMqttChunkData(msg) {
@@ -1140,7 +1128,7 @@
           pack.chunks[msg.index] = uint8;
           pack.receivedCount++;
           pack.receivedBytes += uint8.length;
-          updateIncomingUI(pack, "MQTT流水線");
+          updateIncomingUI(pack);
         }
 
         if (msg.isWindowEnd || msg.index === pack.totalChunks - 1) {
@@ -1157,7 +1145,7 @@
         }
       }
 
-      function initIncomingFileRecord(fileId, fileName, fileType, fileSize, totalChunks, isImage, senderName, senderAvatar, senderId, mode) {
+      function initIncomingFileRecord(fileId, fileName, fileType, fileSize, totalChunks, isImage, senderName, senderAvatar, senderId) {
         const placeholderId = "box_" + fileId;
         incomingFiles.set(fileId, {
           chunks: new Array(totalChunks),
@@ -1185,7 +1173,7 @@
             <span class="text-xs font-mono-tech text-cyan-400 mb-1 px-1">${senderName}</span>
             <div class="p-3 rounded-lg bg-[#060b17] border border-cyan-500/30 flex items-center gap-2 text-xs font-mono-tech text-cyan-300">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-              <span id="${placeholderId}_txt">📥 [${mode}] 接收數據: 0 B / ${formatBytes(fileSize)} (0%)</span>
+              <span id="${placeholderId}_txt">接收中:0%(0.0MB/S)</span>
             </div>
           </div>
         `;
@@ -1193,14 +1181,14 @@
         box.scrollTop = box.scrollHeight;
       }
 
-      function updateIncomingUI(pack, modeLabel) {
-        if (pack.receivedCount % 8 === 0 || pack.receivedCount === pack.totalChunks) {
+      // 依要求：接收只留下 接收中:67%(4.9MB/S)
+      function updateIncomingUI(pack) {
+        if (pack.receivedCount % 4 === 0 || pack.receivedCount === pack.totalChunks) {
           const txt = document.getElementById(pack.placeholderId + "_txt");
           if (txt) {
             const pct = Math.round((pack.receivedCount / pack.totalChunks) * 100);
-            const elapsed = (Date.now() - pack.startTime) / 1000;
-            const spd = elapsed > 0 ? formatBytes(pack.receivedBytes / elapsed) + "/s" : "";
-            txt.innerText = `📥 [${modeLabel}] 寫入中: ${formatBytes(pack.receivedBytes)} / ${formatBytes(pack.fileSize)} (${pct}%) [${spd}]`;
+            const speed = calcSpeedMB(pack.receivedBytes, pack.startTime);
+            txt.innerText = `接收中:${pct}%(${speed})`;
           }
         }
       }
@@ -1245,9 +1233,9 @@
                 <span class="text-base">💾</span>
                 <span class="truncate">${pack.fileName}</span>
               </div>
-              <div class="text-[10px] text-slate-400">完整大小: ${formatBytes(pack.fileSize)}</div>
+              <div class="text-[10px] text-slate-400">大小: ${formatBytes(pack.fileSize)}</div>
               <div class="flex justify-end pt-1 border-t border-cyan-500/20">
-                <a href="${objectUrl}" download="${pack.fileName}" class="cyber-btn w-full text-center py-1.5 text-[11px] rounded">提取完整檔案</a>
+                <a href="${objectUrl}" download="${pack.fileName}" class="cyber-btn w-full text-center py-1.5 text-[11px] rounded">下載檔案</a>
               </div>
             </div>
           `;
@@ -1256,7 +1244,7 @@
       }
 
       /* ============================================================
-         6. 介面互動與聊天文字常規功能
+         6. 訊息發送與在線清單
          ============================================================ */
       function sendTextMessage() {
         const input = document.getElementById("chat-input");
@@ -1283,7 +1271,7 @@
             <div class="flex items-center gap-2 overflow-hidden">
               <img src="${user.avatar}" class="w-6 h-6 rounded-md object-cover border border-cyan-400/40 flex-shrink-0" />
               <span class="truncate ${isMe ? 'text-cyan-300 font-bold' : 'text-slate-300'}">
-                ${user.name} <span class="text-[10px] text-slate-500">#${shortId}</span> ${isMe ? '<span class="text-[9px] text-cyan-400">(ME)</span>' : ''}
+                ${user.name} <span class="text-[10px] text-slate-500">#${shortId}</span> ${isMe ? '<span class="text-[9px] text-cyan-400">(我)</span>' : ''}
               </span>
             </div>
             <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f2fe] flex-shrink-0"></span>
@@ -1401,7 +1389,7 @@
         document.getElementById("lobby-panel").classList.add("hidden");
         document.getElementById("login-panel").classList.remove("hidden");
         document.getElementById("chat-scroller").innerHTML = "";
-        document.getElementById("conn-hint").innerText = "STATUS: DISCONNECTED";
+        document.getElementById("conn-hint").innerText = "已離線";
       }
 
       window.onload = () => {
