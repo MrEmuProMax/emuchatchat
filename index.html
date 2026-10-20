@@ -160,8 +160,8 @@
     <!-- 2. 主聊天視窗 -->
     <div id="lobby-panel" class="relative z-20 hidden w-[98vw] h-[95vh] max-w-7xl bg-[#080d19]/95 glow-border rounded-xl shadow-2xl backdrop-blur-2xl flex overflow-hidden">
       
-      <!-- [左側欄] 聊天室切換與新增 -->
-      <div class="w-64 bg-[#050811]/90 border-r border-cyan-500/20 flex flex-col justify-between flex-shrink-0">
+      <!-- [左側欄] 聊天室切換與新增 (可切換隱藏) -->
+      <div id="left-sidebar" class="w-64 bg-[#050811]/90 border-r border-cyan-500/20 flex flex-col justify-between flex-shrink-0 transition-all duration-200">
         <div>
           <div class="p-3.5 border-b border-cyan-500/20 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -201,16 +201,25 @@
         </div>
       </div>
 
-      <!-- [中央與右側] 主聊天與成員區塊 -->
+      <!-- [中央主體] 聊天與工具列 -->
       <div class="flex-1 flex flex-col justify-between overflow-hidden">
         
-        <!-- 頂部資訊列 -->
+        <!-- 頂部資訊列 (加入左/右側欄切換按鈕) -->
         <div class="px-4 py-2.5 border-b border-cyan-500/20 bg-slate-900/40 flex justify-between items-center flex-shrink-0">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2.5">
+            <!-- 隱藏/展開左側聊天室按鈕 -->
+            <button onclick="toggleLeftSidebar()" title="顯示 / 隱藏聊天室" class="cyber-btn px-2.5 py-1 rounded text-xs flex items-center gap-1 font-mono-tech">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+              <span class="hidden sm:inline">聊天室</span>
+            </button>
+
             <div class="flex items-center gap-2 bg-[#050811] border border-cyan-500/40 px-3 py-1 rounded-md">
               <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
               <span id="lobby-title" class="font-mono-tech text-xs font-bold text-cyan-300 tracking-wider">公共大廳</span>
             </div>
+
             <div class="hidden sm:flex items-center gap-2 text-xs font-mono-tech">
               <span id="p2p-badge" class="px-2.5 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
                 連線準備中
@@ -219,18 +228,27 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2.5">
             <span class="font-mono-tech text-[10px] text-slate-400">延遲: <span id="ping-stat" class="text-green-400 font-bold">0ms</span></span>
+
+            <!-- 隱藏/展開右側成員按鈕 -->
+            <button onclick="toggleRightSidebar()" title="顯示 / 隱藏在線成員" class="cyber-btn px-2.5 py-1 rounded text-xs flex items-center gap-1 font-mono-tech">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span class="hidden sm:inline">成員</span>
+            </button>
           </div>
         </div>
 
-        <!-- 主體內容：聊天串 + 在線名單 -->
+        <!-- 主體內容：聊天串 + 在線名單 (右側欄可切換隱藏) -->
         <div class="flex-1 flex overflow-hidden p-3 gap-3">
           <div class="flex-1 bg-[#050811]/70 border border-cyan-500/20 rounded-lg p-3 flex flex-col justify-between overflow-hidden">
             <div id="chat-scroller" class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 text-sm"></div>
           </div>
 
-          <div class="w-56 bg-[#050811]/70 border border-cyan-500/20 rounded-lg p-3 flex flex-col flex-shrink-0">
+          <!-- [右側欄] 在線名單 (可切換隱藏) -->
+          <div id="right-sidebar" class="w-56 bg-[#050811]/70 border border-cyan-500/20 rounded-lg p-3 flex flex-col flex-shrink-0 transition-all duration-200">
             <div class="font-mono-tech text-[11px] text-cyan-400 mb-2 pb-1.5 border-b border-cyan-500/20 flex justify-between items-center tracking-wider">
               <span>在線成員</span>
               <span class="text-green-400 text-[9px] flex items-center gap-1">
@@ -285,7 +303,7 @@
          1. 核心參數與大廳紀錄管理
          ============================================================ */
       const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-      const LOBBY_PREFIX = "chat_turbo_v11/";
+      const LOBBY_PREFIX = "chat_turbo_v12/";
 
       const RTC_CONFIG = {
         iceServers: [
@@ -323,6 +341,17 @@
       const uploadQueue = [];
       let activeUploadTask = null;
       const incomingFiles = new Map();
+
+      // 切換兩側面板顯示狀態
+      function toggleLeftSidebar() {
+        const bar = document.getElementById("left-sidebar");
+        bar.classList.toggle("hidden");
+      }
+
+      function toggleRightSidebar() {
+        const bar = document.getElementById("right-sidebar");
+        bar.classList.toggle("hidden");
+      }
 
       function calcSpeedMB(bytes, startTime) {
         const sec = (Date.now() - startTime) / 1000;
@@ -438,6 +467,9 @@
         updateP2PBadge();
       }
 
+      /* ============================================================
+         2. 聊天室切換（保留所有歷史訊息）
+         ============================================================ */
       function switchRoom(newRoom) {
         if (!client || !client.connected) return;
         if (currentRoom === newRoom) return;
@@ -584,7 +616,6 @@
         const peer = getOrCreatePeer(targetId);
         if (peer.ready) return;
 
-        // 【核心優化】：ordered: false 解除 SCTP 隊頭排隊卡頓
         const dc = peer.pc.createDataChannel("cyber_data", { ordered: false });
         setupDataChannel(targetId, dc);
 
@@ -601,7 +632,6 @@
 
       function setupDataChannel(targetId, dc) {
         dc.binaryType = "arraybuffer";
-        // 設置 1MB 門檻，觸發 onbufferedamountlow
         dc.bufferedAmountLowThreshold = 1024 * 1024;
 
         const peer = getOrCreatePeer(targetId);
@@ -762,7 +792,6 @@
       /* ============================================================
          4. 極速檔案傳輸 (64KB 黃金吞吐量 + 0ms 事件流控)
          ============================================================ */
-      // 64KB (65536 - 8 bytes header = 65528 bytes): 瀏覽器最快最平順的實測吞吐尺寸
       const P2P_CHUNK_SIZE = 65536 - 8;
       const MQTT_CHUNK_SIZE = 24 * 1024;
       const MQTT_WINDOW_SIZE = 8;
@@ -835,7 +864,6 @@
         return null;
       }
 
-      // 【極速 P2P】：0ms onbufferedamountlow 硬件回調，移除 setTimeout 阻塞
       function streamFileP2P(file) {
         return new Promise(async (resolve) => {
           const isImage = file.type.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(file.name);
@@ -889,7 +917,6 @@
             packet.set(new Uint8Array(arrayBuffer), 8);
 
             for (const dc of activeChannels) {
-              // 超出 3MB 緩衝時，等待網卡硬件排水事件，0 延遲無縫喚醒
               if (dc.bufferedAmount > 3 * 1024 * 1024) {
                 await new Promise((res) => {
                   dc.onbufferedamountlow = () => {
@@ -1313,7 +1340,7 @@
               </div>
               <div class="text-[10px] text-slate-400">大小: ${formatBytes(fileSize)}</div>
               <div class="flex justify-end pt-1 border-t border-cyan-500/20">
-                <a href="${url}" download="${fileName}" class="cyber-btn w-full text-center py-1.5 text-[11px] rounded">下載檔案</a>
+                <a href="${url}" download="${fileName}" class="cyber-btn w-full text-center py-1.5 text-[10px] rounded">下載檔案</a>
               </div>
             </div>
           `;
